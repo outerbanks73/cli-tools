@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "getscript"
+version = "0.9.0"
+description = "Unified transcript CLI for YouTube and Apple Podcasts"
+requires-python = ">=3.10"
+dependencies = [
+    "youtube-transcript-api>=1.0.0",
+]
+
+[project.scripts]
+getscript = "getscript.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["getscript*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
