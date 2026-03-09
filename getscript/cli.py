@@ -24,6 +24,8 @@ examples:
   getscript --search "lex fridman" --apple              # search Apple Podcasts
   getscript --search "topic" --list                    # print results, no fzf
   getscript --search "topic" --limit 20                # control result count
+  getscript VIDEO_ID --proxy socks5://127.0.0.1:1080   # use proxy for YouTube
+  getscript VIDEO_ID --cookies ~/cookies.txt            # use browser cookies
   getscript --completions zsh >> ~/.zshrc"""
 
 
@@ -64,6 +66,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--markdown", action="store_true", default=None, help="Markdown output"
+    )
+    parser.add_argument(
+        "--proxy", metavar="URL", default=None,
+        help="proxy URL for YouTube requests (e.g. socks5://host:port)",
+    )
+    parser.add_argument(
+        "--cookies", metavar="FILE", default=None,
+        help="Netscape cookie file for YouTube auth (e.g. cookies.txt)",
     )
     parser.add_argument(
         "--no-color", action="store_true", default=None, help="disable colors"
@@ -202,7 +212,7 @@ def _fetch_transcript(args, config) -> int:
             progress.update("Fetching YouTube transcript...")
             from getscript.youtube import fetch_transcript
 
-            segments = fetch_transcript(source_id)
+            segments = fetch_transcript(source_id, config)
             progress.done()
 
         elif source == "apple":
@@ -292,6 +302,8 @@ def main(argv: list[str] | None = None) -> int:
         "no_color": args.no_color,
         "quiet": args.quiet,
         "verbose": args.verbose,
+        "proxy": args.proxy,
+        "cookie_file": args.cookies,
     }
     config = merge_config(file_config, cli_flags)
 

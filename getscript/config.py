@@ -40,6 +40,10 @@ def merge_config(file_config: dict, cli_args: dict) -> dict:
         merged["no_color"] = True
     if os.environ.get("GETSCRIPT_YOUTUBE_API_KEY"):
         merged["youtube_api_key"] = os.environ["GETSCRIPT_YOUTUBE_API_KEY"]
+    if os.environ.get("GETSCRIPT_PROXY"):
+        merged["proxy"] = os.environ["GETSCRIPT_PROXY"]
+    if os.environ.get("GETSCRIPT_COOKIE_FILE"):
+        merged["cookie_file"] = os.environ["GETSCRIPT_COOKIE_FILE"]
 
     # CLI flag overrides (only if explicitly set)
     for key, value in cli_args.items():
