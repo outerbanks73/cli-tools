@@ -38,6 +38,8 @@ def merge_config(file_config: dict, cli_args: dict) -> dict:
     # Env var overrides
     if os.environ.get("NO_COLOR"):
         merged["no_color"] = True
+    if os.environ.get("GETSCRIPT_YOUTUBE_API_KEY"):
+        merged["youtube_api_key"] = os.environ["GETSCRIPT_YOUTUBE_API_KEY"]
 
     # CLI flag overrides (only if explicitly set)
     for key, value in cli_args.items():

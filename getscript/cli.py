@@ -20,6 +20,10 @@ examples:
   getscript 1000753754819 --ttml                       # raw TTML XML
   getscript "https://podcasts.apple.com/...?i=12345"
   getscript "https://youtube.com/watch?v=..." -o transcript.txt
+  getscript --search "lex fridman AI"                  # search YouTube, pick via fzf
+  getscript --search "lex fridman" --apple              # search Apple Podcasts
+  getscript --search "topic" --list                    # print results, no fzf
+  getscript --search "topic" --limit 20                # control result count
   getscript --completions zsh >> ~/.zshrc"""
 
 
@@ -33,6 +37,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("input", nargs="?", help="URL or ID to fetch transcript for")
     parser.add_argument(
         "-o", "--output", metavar="FILE", help="write output to file"
+    )
+    parser.add_argument(
+        "--search", metavar="QUERY", help="search for content by topic or creator"
+    )
+    parser.add_argument(
+        "--apple", action="store_true", default=False,
+        help="search Apple Podcasts instead of YouTube",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, metavar="N",
+        help="number of search results (default: 10)",
+    )
+    parser.add_argument(
+        "--list", action="store_true", default=False,
+        help="print search results without interactive selection",
     )
     parser.add_argument(
         "--json", action="store_true", default=None, help="structured JSON output"
@@ -67,33 +86,84 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def _handle_search(args, config) -> int:
+    """Handle --search mode: search, select, then fetch transcript."""
+    from getscript.picker import format_list, pick_result
+    from getscript.search import search_apple, search_youtube
 
-    # Shell completions — print and exit
-    if args.completions:
-        print(generate_completions(args.completions))
-        return 0
+    verbose = config.get("verbose", False)
+    quiet = config.get("quiet", False)
+    limit = args.limit or config.get("search_limit", 10)
 
-    # No input provided
-    if not args.input:
-        parser.print_help(sys.stderr)
-        return 2
+    progress = Progress(quiet=quiet)
 
-    # Load and merge config
-    file_config = load_config()
-    cli_flags = {
-        "json": args.json,
-        "ttml": args.ttml,
-        "timestamps": args.timestamps,
-        "markdown": args.markdown,
-        "no_color": args.no_color,
-        "quiet": args.quiet,
-        "verbose": args.verbose,
-    }
-    config = merge_config(file_config, cli_flags)
+    try:
+        if args.apple:
+            progress.update("Searching Apple Podcasts...")
+            results = search_apple(args.search, limit=limit)
+        else:
+            api_key = config.get("youtube_api_key")
+            if not api_key:
+                print(
+                    "YouTube API key required for --search.\n"
+                    "Set GETSCRIPT_YOUTUBE_API_KEY env var or add "
+                    '"youtube_api_key" to ~/.config/getscript/config.json\n'
+                    "Get a key: https://console.cloud.google.com/apis/credentials",
+                    file=sys.stderr,
+                )
+                return 1
+            progress.update("Searching YouTube...")
+            results = search_youtube(args.search, api_key, limit=limit)
 
+        progress.done()
+
+        if not results:
+            print(f"No results for: {args.search}", file=sys.stderr)
+            return 1
+
+        # --list mode: print results and exit
+        if args.list:
+            print(format_list(results))
+            return 0
+
+        # Interactive selection via fzf
+        selected = pick_result(results)
+        if selected is None:
+            return 130
+
+        # Determine source type from selection
+        source_id = selected["id"]
+        if args.apple:
+            source_input = source_id  # numeric Apple ID
+        else:
+            source_input = source_id  # YouTube video ID
+
+    except RuntimeError as e:
+        # fzf not installed
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        progress.done()
+        print("\nInterrupted.", file=sys.stderr)
+        return 1
+    except Exception as e:
+        progress.done()
+        if verbose:
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+        else:
+            print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    # Now fetch the transcript using the selected ID
+    # Re-use args with the selected input
+    args.input = source_input
+    args.search = None  # prevent re-entry
+    return _fetch_transcript(args, config)
+
+
+def _fetch_transcript(args, config) -> int:
+    """Fetch and output a transcript for the given input."""
     timestamps = config.get("timestamps", False)
     verbose = config.get("verbose", False)
     quiet = config.get("quiet", False)
@@ -179,6 +249,47 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"Error: {e}", file=sys.stderr)
         return 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    # Shell completions — print and exit
+    if args.completions:
+        print(generate_completions(args.completions))
+        return 0
+
+    # No input provided and no search
+    if not args.input and not args.search:
+        parser.print_help(sys.stderr)
+        return 2
+
+    # Mutual exclusivity: --search and positional input
+    if args.search and args.input:
+        print("Error: --search and positional input are mutually exclusive.",
+              file=sys.stderr)
+        return 2
+
+    # Load and merge config
+    file_config = load_config()
+    cli_flags = {
+        "json": args.json,
+        "ttml": args.ttml,
+        "timestamps": args.timestamps,
+        "markdown": args.markdown,
+        "no_color": args.no_color,
+        "quiet": args.quiet,
+        "verbose": args.verbose,
+    }
+    config = merge_config(file_config, cli_flags)
+
+    # Search mode
+    if args.search:
+        return _handle_search(args, config)
+
+    # Direct fetch mode
+    return _fetch_transcript(args, config)
 
 
 if __name__ == "__main__":
