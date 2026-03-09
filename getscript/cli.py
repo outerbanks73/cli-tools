@@ -95,6 +95,17 @@ def _handle_search(args, config) -> int:
     quiet = config.get("quiet", False)
     limit = args.limit or config.get("search_limit", 10)
 
+    # Apple transcript fetch requires macOS — warn before searching unless --list
+    if args.apple and not args.list:
+        import sys as _sys
+        if _sys.platform != "darwin":
+            print(
+                "Apple Podcasts transcripts require macOS 15.5+ with Xcode CLI tools.\n"
+                "Use --list to browse search results without fetching transcripts.",
+                file=sys.stderr,
+            )
+            return 1
+
     progress = Progress(quiet=quiet)
 
     try:
