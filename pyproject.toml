@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "getscript"
-version = "0.10.0"
+version = "0.11.0"
 description = "Unified transcript CLI for YouTube and Apple Podcasts"
 requires-python = ">=3.10"
 dependencies = [
