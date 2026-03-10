@@ -26,7 +26,7 @@ examples:
   getscript --search "topic" --limit 20                # control result count
   getscript VIDEO_ID --proxy socks5://127.0.0.1:1080   # use proxy for YouTube
   getscript VIDEO_ID --cookies ~/cookies.txt            # use browser cookies
-  getscript VIDEO_ID --upload                              # contribute to shared pool
+  getscript VIDEO_ID --no-upload                            # skip shared library indexing
   getscript --completions zsh >> ~/.zshrc"""
 
 
@@ -77,8 +77,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Netscape cookie file for YouTube auth (e.g. cookies.txt)",
     )
     parser.add_argument(
-        "--upload", action="store_true", default=None,
-        help="contribute transcript to shared pool",
+        "--no-upload", action="store_true", default=None,
+        help="disable contributing transcript to shared library",
     )
     parser.add_argument(
         "--no-color", action="store_true", default=None, help="disable colors"
@@ -254,8 +254,8 @@ def _fetch_transcript(args, config) -> int:
         else:
             print(result)
 
-        # Upload to shared pool if requested
-        if config.get("upload"):
+        # Upload to shared library (on by default, disable with --no-upload)
+        if not config.get("no_upload"):
             from getscript.upload import fetch_title, upload_transcript
 
             title = getattr(args, "_title", None)
@@ -264,10 +264,16 @@ def _fetch_transcript(args, config) -> int:
             resp = upload_transcript(source, source_id, segments, title, config)
             if resp and not quiet:
                 status = resp.get("status", "unknown")
-                if status == "already_exists":
-                    print("Transcript already in shared pool.", file=sys.stderr)
-                elif status in ("created", "updated"):
-                    print("Transcript uploaded to shared pool.", file=sys.stderr)
+                if status == "already_indexed":
+                    print(
+                        "Transcript indexed at voxlytranscribes.com",
+                        file=sys.stderr,
+                    )
+                elif status == "queued":
+                    print(
+                        "Transcript submitted to voxlytranscribes.com (verifying)",
+                        file=sys.stderr,
+                    )
 
         return 0
 
@@ -322,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
         "verbose": args.verbose,
         "proxy": args.proxy,
         "cookie_file": args.cookies,
-        "upload": args.upload,
+        "no_upload": args.no_upload,
     }
     config = merge_config(file_config, cli_flags)
 

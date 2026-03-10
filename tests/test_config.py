@@ -73,20 +73,20 @@ class TestMergeConfig:
         # CLI flag explicitly set to False overrides env
         assert result["no_color"] is False
 
-    def test_upload_env_true(self, monkeypatch):
-        monkeypatch.setenv("GETSCRIPT_UPLOAD", "1")
-        result = merge_config({}, {})
-        assert result["upload"] is True
-
-    def test_upload_env_yes(self, monkeypatch):
-        monkeypatch.setenv("GETSCRIPT_UPLOAD", "yes")
-        result = merge_config({}, {})
-        assert result["upload"] is True
-
-    def test_upload_env_false(self, monkeypatch):
+    def test_upload_disabled_env_zero(self, monkeypatch):
         monkeypatch.setenv("GETSCRIPT_UPLOAD", "0")
         result = merge_config({}, {})
-        assert "upload" not in result
+        assert result["no_upload"] is True
+
+    def test_upload_disabled_env_false(self, monkeypatch):
+        monkeypatch.setenv("GETSCRIPT_UPLOAD", "false")
+        result = merge_config({}, {})
+        assert result["no_upload"] is True
+
+    def test_upload_enabled_env(self, monkeypatch):
+        monkeypatch.setenv("GETSCRIPT_UPLOAD", "1")
+        result = merge_config({}, {})
+        assert "no_upload" not in result
 
     def test_supabase_url_env(self, monkeypatch):
         monkeypatch.setenv("GETSCRIPT_SUPABASE_URL", "https://custom.supabase.co")

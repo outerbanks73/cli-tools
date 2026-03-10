@@ -1,12 +1,14 @@
 """Upload transcripts to the shared Voxly transcript pool."""
 
-import hashlib
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
+import uuid
 
 from getscript import __version__
+from getscript.config import get_config_dir
 
 SUPABASE_URL = "https://ohxuifdseybxckmprcry.supabase.co"
 SUPABASE_ANON_KEY = (
@@ -19,6 +21,24 @@ SOURCE_TYPE_MAP = {
     "youtube": "youtube_transcript",
     "apple": "podcast",
 }
+
+
+def get_device_id() -> str:
+    """Get or create a persistent anonymous device ID."""
+    config_dir = get_config_dir()
+    device_path = os.path.join(config_dir, "device.json")
+    if os.path.exists(device_path):
+        try:
+            with open(device_path) as f:
+                data = json.load(f)
+                return data["device_id"]
+        except (json.JSONDecodeError, KeyError):
+            pass
+    device_id = str(uuid.uuid4())
+    os.makedirs(config_dir, exist_ok=True)
+    with open(device_path, "w") as f:
+        json.dump({"device_id": device_id}, f)
+    return device_id
 
 
 def fetch_title(source: str, source_id: str) -> str | None:
@@ -64,7 +84,10 @@ def upload_transcript(
         full_text = " ".join(seg.get("text", "") for seg in segments)
         word_count = len(full_text.split())
 
+        device_id = get_device_id()
+
         payload = {
+            "device_id": device_id,
             "source_type": source_type,
             "source_id": source_id,
             "source_url": source_url,

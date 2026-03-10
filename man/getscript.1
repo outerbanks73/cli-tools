@@ -1,0 +1,241 @@
+.TH GETSCRIPT 1 "2026-03-10" "getscript 0.10.0" "User Commands"
+.SH NAME
+getscript \- fetch transcripts from YouTube and Apple Podcasts
+.SH SYNOPSIS
+.B getscript
+.RI [ URL | ID ]
+.RI [ OPTIONS ]
+.br
+.B getscript
+.B \-\-search
+.I QUERY
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B getscript
+is a fast, Unix-friendly CLI for fetching transcripts from YouTube videos
+and Apple Podcasts episodes. Output goes to stdout and is designed to be
+piped into
+.BR grep (1),
+.BR awk (1),
+.BR jq (1),
+or redirected to files.
+.PP
+By default, fetched transcripts are submitted to the shared transcript
+library at
+.B voxlytranscribes.com
+for indexing and enrichment. This improves the library for all users.
+Submissions are verified server-side. Use
+.B \-\-no\-upload
+to disable this behavior.
+.PP
+Each installation is identified by an anonymous device ID stored at
+.IR ~/.config/getscript/device.json .
+No account or login is required.
+.SH ARGUMENTS
+.TP
+.I URL
+A YouTube or Apple Podcasts URL. Supported formats:
+.br
+\(bu https://youtube.com/watch?v=VIDEO_ID
+.br
+\(bu https://youtu.be/VIDEO_ID
+.br
+\(bu https://youtube.com/shorts/VIDEO_ID
+.br
+\(bu https://podcasts.apple.com/...?i=EPISODE_ID
+.TP
+.I ID
+A bare YouTube video ID (11 alphanumeric characters) or Apple Podcasts
+numeric episode ID.
+.SH OPTIONS
+.TP
+.BI \-o " FILE" ", \-\-output " FILE
+Write output to FILE instead of stdout.
+.TP
+.BI \-\-search " QUERY"
+Search for content by topic or creator. Requires
+.B fzf
+for interactive selection (use
+.B \-\-list
+for non-interactive output). YouTube search requires
+.BR GETSCRIPT_YOUTUBE_API_KEY .
+.TP
+.B \-\-apple
+Search Apple Podcasts instead of YouTube (use with
+.BR \-\-search ).
+.TP
+.BI \-\-limit " N"
+Number of search results to return (default: 10).
+.TP
+.B \-\-list
+Print search results as a numbered list without interactive selection.
+.TP
+.B \-\-json
+Output structured JSON. Pipe to
+.BR jq (1)
+for filtering.
+.TP
+.B \-\-ttml
+Output raw TTML XML (Apple Podcasts only).
+.TP
+.B \-\-timestamps
+Include timestamps in text output.
+.TP
+.B \-\-markdown
+Output as Markdown with YAML frontmatter.
+.TP
+.BI \-\-proxy " URL"
+Proxy URL for YouTube requests (e.g., socks5://127.0.0.1:1080).
+.TP
+.BI \-\-cookies " FILE"
+Netscape cookie file for YouTube authentication.
+.TP
+.B \-\-no\-upload
+Disable automatic submission to the shared transcript library.
+.TP
+.B \-\-no\-color
+Disable colored output.
+.TP
+.B \-\-quiet
+Suppress progress output on stderr.
+.TP
+.B \-\-verbose
+Show detailed error tracebacks.
+.TP
+.BI \-\-completions " SHELL"
+Generate shell completions for
+.I bash\fR, \fIzsh\fR, or \fIfish\fR.
+.TP
+.B \-\-version
+Print version and exit.
+.SH CONFIGURATION
+.SS Config File
+.I ~/.config/getscript/config.json
+.PP
+.nf
+{
+  "youtube_api_key": "YOUR_KEY",
+  "output_format": "text",
+  "timestamps": false,
+  "search_limit": 10,
+  "no_upload": false
+}
+.fi
+.SS Environment Variables
+.TP
+.B GETSCRIPT_YOUTUBE_API_KEY
+YouTube Data API v3 key (required for \fB\-\-search\fR).
+.TP
+.B GETSCRIPT_PROXY
+Default proxy URL for YouTube requests.
+.TP
+.B GETSCRIPT_COOKIE_FILE
+Default Netscape cookie file path.
+.TP
+.B GETSCRIPT_UPLOAD
+Set to \fB0\fR, \fBfalse\fR, or \fBno\fR to disable shared library
+submissions by default.
+.TP
+.B GETSCRIPT_SUPABASE_URL
+Custom Supabase URL (for development/testing).
+.TP
+.B GETSCRIPT_SUPABASE_ANON_KEY
+Custom Supabase anon key (for development/testing).
+.TP
+.B NO_COLOR
+Disable colors (standard convention).
+.PP
+Priority: config file < environment variables < CLI flags.
+.SH SHARED TRANSCRIPT LIBRARY
+.B getscript
+contributes fetched transcripts to a shared library at
+.BR voxlytranscribes.com .
+This creates a network effect: free CLI users contribute transcripts that are
+then verified, enriched with AI summaries, embeddings, and entity extraction,
+and made searchable.
+.SS How It Works
+.IP 1. 4
+When you fetch a transcript,
+.B getscript
+submits the text along with an anonymous device ID to the Voxly
+ingest endpoint.
+.IP 2. 4
+The submission enters a quarantine queue. A server-side worker
+independently re-fetches the transcript from the original source to
+verify integrity.
+.IP 3. 4
+Verified transcripts are promoted to the canonical library with full
+provenance tracking (device ID, content hash, submission timestamp).
+.IP 4. 4
+Duplicate submissions from different devices increase the transcript's
+confidence score.
+.SS Privacy
+No personal information is collected. The device ID is a random UUID
+generated on first run. IP addresses are stored only as SHA-256 hashes
+for rate limiting. You can disable submissions entirely with
+.B \-\-no\-upload
+or
+.BR GETSCRIPT_UPLOAD=0 .
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+General error (network failure, transcript not available).
+.TP
+.B 2
+Usage error (invalid input, missing arguments).
+.TP
+.B 130
+User interrupt (Ctrl-C or fzf cancellation).
+.SH EXAMPLES
+.nf
+# Fetch a YouTube transcript
+getscript "https://youtube.com/watch?v=dQw4w9WgXcQ"
+
+# JSON output piped to jq
+getscript VIDEO_ID \-\-json | jq '.segments[].text'
+
+# Markdown with timestamps
+getscript VIDEO_ID \-\-markdown \-\-timestamps > notes.md
+
+# Apple Podcasts
+getscript 1000753754819
+
+# Search YouTube interactively
+getscript \-\-search "machine learning"
+
+# Fetch without contributing to shared library
+getscript VIDEO_ID \-\-no\-upload
+
+# Generate shell completions
+getscript \-\-completions zsh >> ~/.zshrc
+.fi
+.SH FILES
+.TP
+.I ~/.config/getscript/config.json
+Configuration file.
+.TP
+.I ~/.config/getscript/device.json
+Anonymous device ID for shared library submissions.
+.TP
+.I ~/.cache/getscript/apple_token
+Cached Apple bearer token (macOS only).
+.SH REQUIREMENTS
+Python 3.10+. Apple Podcasts transcripts require macOS 15.5+ with Xcode
+CLI tools.
+.SH SEE ALSO
+.BR jq (1),
+.BR fzf (1),
+.BR youtube-dl (1)
+.PP
+.UR https://voxlytranscribes.com/docs/getscript
+Technical documentation
+.UE
+.PP
+.UR https://github.com/outerbanks73/cli-tools
+Source code
+.UE
+.SH AUTHORS
+Voxly contributors.

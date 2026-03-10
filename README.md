@@ -42,9 +42,10 @@ getscript --search "topic" --limit 20
 getscript VIDEO_ID --proxy socks5://127.0.0.1:1080
 getscript VIDEO_ID --cookies ~/cookies.txt
 
-# Upload to shared transcript pool
-getscript VIDEO_ID --upload
-GETSCRIPT_UPLOAD=1 getscript VIDEO_ID
+# Transcripts are automatically indexed at voxlytranscribes.com
+# To disable:
+getscript VIDEO_ID --no-upload
+GETSCRIPT_UPLOAD=0 getscript VIDEO_ID
 
 # Shell completions
 getscript --completions bash >> ~/.bashrc
@@ -62,7 +63,7 @@ Config file: `~/.config/getscript/config.json`
   "output_format": "text",
   "timestamps": false,
   "search_limit": 10,
-  "upload": false
+  "no_upload": false
 }
 ```
 
@@ -70,7 +71,7 @@ Environment variables:
 - `GETSCRIPT_YOUTUBE_API_KEY` — YouTube Data API v3 key (required for `--search`)
 - `GETSCRIPT_PROXY` — proxy URL for YouTube requests
 - `GETSCRIPT_COOKIE_FILE` — Netscape cookie file for YouTube auth
-- `GETSCRIPT_UPLOAD` — set to `1` to always upload transcripts to the shared pool
+- `GETSCRIPT_UPLOAD` — set to `0` to disable automatic shared library indexing
 - `GETSCRIPT_SUPABASE_URL` — custom Supabase URL (for development)
 - `GETSCRIPT_SUPABASE_ANON_KEY` — custom Supabase anon key (for development)
 - `NO_COLOR` — disable colors
