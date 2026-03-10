@@ -23,7 +23,7 @@ def search_youtube(query: str, api_key: str, limit: int = 10) -> list[dict]:
     req = urllib.request.Request(url)
     req.add_header("Accept", "application/json")
 
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=15) as resp:
         data = json.loads(resp.read())
 
     results = []
@@ -56,7 +56,7 @@ def search_apple(query: str, limit: int = 10) -> list[dict]:
     url = f"https://itunes.apple.com/search?{params}"
 
     req = urllib.request.Request(url)
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=15) as resp:
         data = json.loads(resp.read())
 
     results = []

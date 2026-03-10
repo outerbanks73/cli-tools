@@ -1,42 +1,51 @@
-# CLAUDE.md - CLI Project Guidelines
+# CLAUDE.md - getscript CLI Guidelines
 
 ## Project Vision
-A lightweight, high-performance CLI tool for [Purpose]. 
+A lightweight CLI for fetching transcripts from YouTube and Apple Podcasts.
 Target Users: Linux/macOS developers who value speed and pipes (`|`).
 
 ## Build & Test Commands
-- **Install dependencies:** `npm install` (or `go mod tidy` / `pip install`)
-- **Build project:** `npm run build`
-- **Run locally:** `./bin/run [args]`
-- **Test suite:** `npm test`
-- **Linting:** `npm run lint`
+- **Install (editable):** `pip install -e .`
+- **Run locally:** `getscript [URL|ID] [options]`
+- **Test suite:** `pytest` or `pytest -v`
+- **Requires:** Python 3.10+
 
 ## CLI Design Principles (CRITICAL)
 1. **Silence is Golden:** No "Hello!" or "Welcome!" banners unless `--verbose` is used.
 2. **Standard Streams:** Output primary data to `stdout`. Output errors/logs to `stderr`.
-3. **Exit Codes:** - `0` for success.
+3. **Exit Codes:**
+   - `0` for success.
    - `1` for general errors.
-   - `127` for command not found.
-4. **Composability:** Ensure output can be piped into `grep`, `awk`, or `jq`. 
-5. **Speed:** Startup time must be <100ms. Avoid heavy dependency bloat.
+   - `2` for usage errors.
+   - `130` for user interrupt.
+4. **Composability:** Ensure output can be piped into `grep`, `awk`, or `jq`.
+5. **Speed:** Startup time must be <100ms. Use lazy imports for heavy modules.
 
 ## Code Style & Patterns
-- **Language:** [e.g., TypeScript / Go / Rust]
+- **Language:** Python 3.10+
 - **Error Handling:** Avoid generic try-catch. Use specific error types and clean exit messages.
-- **Formatting:** Follow standard [Prettier/gofmt] rules.
 - **Documentation:** Every command must have a `-h` / `--help` flag with examples.
 
 ## File Structure
-- `src/commands/`: Implementation of CLI subcommands.
-- `src/utils/`: Shared logic (API calls, file I/O).
-- `src/ui/`: Formatting logic (colors via Chalk/Crayons, spinners).
+- `getscript/cli.py`: Entry point and argument parsing.
+- `getscript/detect.py`: URL/ID source detection.
+- `getscript/youtube.py`: YouTube transcript fetching.
+- `getscript/apple.py`: Apple Podcasts fetching (macOS only, Obj-C).
+- `getscript/output.py`: Output formatters (text, JSON, Markdown, TTML).
+- `getscript/config.py`: XDG config/cache handling.
+- `getscript/search.py`: Search backends (YouTube API v3, iTunes API).
+- `getscript/picker.py`: Interactive fzf selection.
+- `getscript/progress.py`: TTY-aware progress spinner.
+- `getscript/completions.py`: Shell completion generation.
 
 ## Version Management
 
-Use github to track all updates. If a bad build is deployed, it needs to be easily reversed by reverting back to the earlier release.
+Version is defined in `pyproject.toml` and read at runtime via `importlib.metadata`.
+
+Use GitHub to track all updates. If a bad build is deployed, revert to the earlier release.
 
 ### Search, Don't Checklist
-When bumping versions, `grep -rn "old_version"` across the entire repo. JS constants like `CURRENT_VERSION` are easy to miss. The version was stuck at 1.8.1 in one file while everything else was 1.8.6 — nobody noticed.
+When bumping versions, `grep -rn "old_version"` across the entire repo.
 
 ### Always Create Git Tags
 After committing a version bump: `git tag vX.Y.Z && git push origin vX.Y.Z`. Tags make releases discoverable and enable proper GitHub Releases.

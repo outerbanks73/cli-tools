@@ -20,8 +20,8 @@ examples:
   getscript 1000753754819 --ttml                       # raw TTML XML
   getscript "https://podcasts.apple.com/...?i=12345"
   getscript "https://youtube.com/watch?v=..." -o transcript.txt
-  getscript --search "lex fridman AI"                  # search YouTube, pick via fzf
-  getscript --search "lex fridman" --apple              # search Apple Podcasts
+  getscript --search "my favorite YouTuber"              # search YouTube, pick via fzf
+  getscript --search "my favorite podcaster" --apple     # search Apple Podcasts
   getscript --search "topic" --list                    # print results, no fzf
   getscript --search "topic" --limit 20                # control result count
   getscript VIDEO_ID --proxy socks5://127.0.0.1:1080   # use proxy for YouTube
@@ -107,8 +107,7 @@ def _handle_search(args, config) -> int:
 
     # Apple transcript fetch requires macOS — warn before searching unless --list
     if args.apple and not args.list:
-        import sys as _sys
-        if _sys.platform != "darwin":
+        if sys.platform != "darwin":
             print(
                 "Apple Podcasts transcripts require macOS 15.5+ with Xcode CLI tools.\n"
                 "Use --list to browse search results without fetching transcripts.",
@@ -153,11 +152,7 @@ def _handle_search(args, config) -> int:
             return 130
 
         # Determine source type from selection
-        source_id = selected["id"]
-        if args.apple:
-            source_input = source_id  # numeric Apple ID
-        else:
-            source_input = source_id  # YouTube video ID
+        source_input = selected["id"]
 
     except RuntimeError as e:
         # fzf not installed
@@ -223,6 +218,7 @@ def _fetch_transcript(args, config) -> int:
             progress.update("Authenticating with Apple...")
             token = get_bearer_token(cache_dir)
             if not token:
+                progress.done()
                 print(
                     "Failed to get Apple bearer token. Requires macOS 15.5+.",
                     file=sys.stderr,
@@ -255,6 +251,7 @@ def _fetch_transcript(args, config) -> int:
         return 0
 
     except ValueError as e:
+        progress.done()
         print(f"Error: {e}", file=sys.stderr)
         return 2
     except KeyboardInterrupt:

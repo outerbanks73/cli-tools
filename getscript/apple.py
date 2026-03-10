@@ -189,7 +189,7 @@ def fetch_ttml(episode_id: str, bearer_token: str) -> str:
     req.add_header("Authorization", f"Bearer {bearer_token}")
 
     try:
-        with urlopen(req) as resp:
+        with urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read())
     except HTTPError as e:
         body = e.read().decode() if e.fp else ""
@@ -201,7 +201,7 @@ def fetch_ttml(episode_id: str, bearer_token: str) -> str:
     attrs = data["data"][0]["attributes"]
     ttml_url = attrs["ttmlAssetUrls"]["ttml"]
 
-    with urlopen(ttml_url) as resp:
+    with urlopen(ttml_url, timeout=15) as resp:
         return resp.read().decode("utf-8")
 
 
@@ -215,9 +215,11 @@ def ttml_to_segments(ttml_content: str) -> list[dict]:
 
         if tag == "p":
             words = []
-            for child in elem.iter():
-                if child.text and child.text.strip():
-                    words.append(child.text.strip())
+            # Use itertext() to get all text content without duplication
+            for text_chunk in elem.itertext():
+                stripped = text_chunk.strip()
+                if stripped:
+                    words.append(stripped)
             if words:
                 text = " ".join(words)
                 begin = elem.get("begin", "")

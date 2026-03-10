@@ -39,6 +39,8 @@ class TestCLI:
         captured = capsys.readouterr()
         assert "complete" in captured.out
         assert "getscript" in captured.out
+        assert "--search" in captured.out
+        assert "--proxy" in captured.out
 
     def test_completions_zsh(self, capsys):
         result = main(["--completions", "zsh"])
@@ -51,13 +53,6 @@ class TestCLI:
         assert result == 0
         captured = capsys.readouterr()
         assert "complete -c getscript" in captured.out
-
-    def test_ttml_without_apple(self, capsys):
-        """--ttml on a YouTube URL should fail gracefully."""
-        # This would try to fetch from YouTube, which we don't mock here.
-        # Just test that detection works and ttml flag is set.
-        # Full integration with mocks is in test_youtube/test_apple.
-        pass
 
 
 class TestPipeCompatibility:

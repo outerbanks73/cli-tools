@@ -32,6 +32,17 @@ class TestLoadConfig:
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
         assert load_config() == {}
 
+    def test_malformed_json(self, monkeypatch, tmp_path, capsys):
+        config_dir = tmp_path / "getscript"
+        config_dir.mkdir()
+        config_file = config_dir / "config.json"
+        config_file.write_text("{invalid json")
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+        result = load_config()
+        assert result == {}
+        captured = capsys.readouterr()
+        assert "invalid config" in captured.err
+
     def test_valid_file(self, monkeypatch, tmp_path):
         config_dir = tmp_path / "getscript"
         config_dir.mkdir()

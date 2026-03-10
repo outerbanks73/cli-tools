@@ -20,10 +20,15 @@ def get_cache_dir() -> str:
 
 def load_config() -> dict:
     """Load config from XDG config file. Returns empty dict if not found."""
+    import sys
+
     config_path = os.path.join(get_config_dir(), "config.json")
     if os.path.exists(config_path):
-        with open(config_path) as f:
-            return json.load(f)
+        try:
+            with open(config_path) as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            print(f"Warning: invalid config at {config_path}: {e}", file=sys.stderr)
     return {}
 
 
