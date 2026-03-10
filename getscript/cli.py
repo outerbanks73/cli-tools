@@ -26,6 +26,7 @@ examples:
   getscript --search "topic" --limit 20                # control result count
   getscript VIDEO_ID --proxy socks5://127.0.0.1:1080   # use proxy for YouTube
   getscript VIDEO_ID --cookies ~/cookies.txt            # use browser cookies
+  getscript VIDEO_ID --upload                              # contribute to shared pool
   getscript --completions zsh >> ~/.zshrc"""
 
 
@@ -255,9 +256,11 @@ def _fetch_transcript(args, config) -> int:
 
         # Upload to shared pool if requested
         if config.get("upload"):
-            from getscript.upload import upload_transcript
+            from getscript.upload import fetch_title, upload_transcript
 
             title = getattr(args, "_title", None)
+            if not title:
+                title = fetch_title(source, source_id)
             resp = upload_transcript(source, source_id, segments, title, config)
             if resp and not quiet:
                 status = resp.get("status", "unknown")

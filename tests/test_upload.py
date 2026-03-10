@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from getscript.upload import upload_transcript, _build_source_url, SUPABASE_URL
+from getscript.upload import upload_transcript, fetch_title, _build_source_url, SUPABASE_URL
 
 
 FIXTURE_SEGMENTS = [
@@ -15,6 +15,34 @@ FIXTURE_SEGMENTS = [
     {"text": "This is a test", "start": 2.5, "duration": 3.0},
     {"text": "Goodbye", "start": 5.5, "duration": 1.5},
 ]
+
+
+class TestFetchTitle:
+    def _mock_response(self, data: dict):
+        resp = MagicMock()
+        resp.read.return_value = json.dumps(data).encode("utf-8")
+        resp.__enter__ = lambda s: s
+        resp.__exit__ = MagicMock(return_value=False)
+        return resp
+
+    @patch("getscript.upload.urllib.request.urlopen")
+    def test_youtube_title(self, mock_urlopen):
+        mock_urlopen.return_value = self._mock_response({"title": "My Video Title"})
+        assert fetch_title("youtube", "abc123") == "My Video Title"
+        req = mock_urlopen.call_args[0][0]
+        assert "oembed" in req.full_url
+        assert "abc123" in req.full_url
+
+    @patch("getscript.upload.urllib.request.urlopen")
+    def test_network_error_returns_none(self, mock_urlopen):
+        mock_urlopen.side_effect = urllib.error.URLError("fail")
+        assert fetch_title("youtube", "abc123") is None
+
+    def test_apple_returns_none(self):
+        assert fetch_title("apple", "999") is None
+
+    def test_unknown_source_returns_none(self):
+        assert fetch_title("other", "xyz") is None
 
 
 class TestBuildSourceUrl:
