@@ -37,6 +37,7 @@ Target Users: Linux/macOS developers who value speed and pipes (`|`).
 - `getscript/picker.py`: Interactive fzf selection.
 - `getscript/progress.py`: TTY-aware progress spinner.
 - `getscript/completions.py`: Shell completion generation.
+- `getscript/upload.py`: Upload to shared Voxly transcript pool (Supabase Edge Function).
 
 ## Version Management
 

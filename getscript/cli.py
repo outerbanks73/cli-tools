@@ -76,6 +76,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Netscape cookie file for YouTube auth (e.g. cookies.txt)",
     )
     parser.add_argument(
+        "--upload", action="store_true", default=None,
+        help="contribute transcript to shared pool",
+    )
+    parser.add_argument(
         "--no-color", action="store_true", default=None, help="disable colors"
     )
     parser.add_argument(
@@ -175,6 +179,7 @@ def _handle_search(args, config) -> int:
     # Re-use args with the selected input
     args.input = source_input
     args.search = None  # prevent re-entry
+    args._title = selected.get("title")  # pass title for upload
     return _fetch_transcript(args, config)
 
 
@@ -248,6 +253,19 @@ def _fetch_transcript(args, config) -> int:
         else:
             print(result)
 
+        # Upload to shared pool if requested
+        if config.get("upload"):
+            from getscript.upload import upload_transcript
+
+            title = getattr(args, "_title", None)
+            resp = upload_transcript(source, source_id, segments, title, config)
+            if resp and not quiet:
+                status = resp.get("status", "unknown")
+                if status == "already_exists":
+                    print("Transcript already in shared pool.", file=sys.stderr)
+                elif status in ("created", "updated"):
+                    print("Transcript uploaded to shared pool.", file=sys.stderr)
+
         return 0
 
     except ValueError as e:
@@ -301,6 +319,7 @@ def main(argv: list[str] | None = None) -> int:
         "verbose": args.verbose,
         "proxy": args.proxy,
         "cookie_file": args.cookies,
+        "upload": args.upload,
     }
     config = merge_config(file_config, cli_flags)
 

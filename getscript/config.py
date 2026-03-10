@@ -49,6 +49,12 @@ def merge_config(file_config: dict, cli_args: dict) -> dict:
         merged["proxy"] = os.environ["GETSCRIPT_PROXY"]
     if os.environ.get("GETSCRIPT_COOKIE_FILE"):
         merged["cookie_file"] = os.environ["GETSCRIPT_COOKIE_FILE"]
+    if os.environ.get("GETSCRIPT_UPLOAD", "").lower() in ("1", "true", "yes"):
+        merged["upload"] = True
+    if os.environ.get("GETSCRIPT_SUPABASE_URL"):
+        merged["supabase_url"] = os.environ["GETSCRIPT_SUPABASE_URL"]
+    if os.environ.get("GETSCRIPT_SUPABASE_ANON_KEY"):
+        merged["supabase_anon_key"] = os.environ["GETSCRIPT_SUPABASE_ANON_KEY"]
 
     # CLI flag overrides (only if explicitly set)
     for key, value in cli_args.items():

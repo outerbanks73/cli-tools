@@ -54,6 +54,20 @@ class TestCLI:
         captured = capsys.readouterr()
         assert "complete -c getscript" in captured.out
 
+    def test_upload_flag_accepted(self):
+        """--upload flag is accepted by parser without error."""
+        from getscript.cli import build_parser
+        parser = build_parser()
+        args = parser.parse_args(["VIDEO_ID", "--upload"])
+        assert args.upload is True
+
+    def test_upload_flag_default(self):
+        """--upload defaults to None when not specified."""
+        from getscript.cli import build_parser
+        parser = build_parser()
+        args = parser.parse_args(["VIDEO_ID"])
+        assert args.upload is None
+
 
 class TestPipeCompatibility:
     """Verify output formats are compatible with common Unix tools.
