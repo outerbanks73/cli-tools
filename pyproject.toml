@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     "youtube-transcript-api>=1.0.0",
     "requests>=2.28.0",
+    "defusedxml>=0.7.1",
 ]
 
 [project.urls]

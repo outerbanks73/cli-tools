@@ -2,10 +2,11 @@
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from datetime import datetime
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -120,6 +121,7 @@ def get_bearer_token(cache_dir: str) -> str:
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         with open(cache_path, "w") as f:
             f.write(token)
+        os.chmod(cache_path, 0o600)
     return token
 
 
@@ -132,13 +134,14 @@ def _compile_and_fetch_token() -> str | None:
         )
         return None
 
-    with tempfile.NamedTemporaryFile(suffix=".m", mode="w", delete=False) as src:
-        src.write(OBJC_TOKEN_SOURCE)
-        src_path = src.name
-
-    bin_path = src_path.replace(".m", "")
+    tmpdir = tempfile.mkdtemp(prefix="getscript-")
+    src_path = os.path.join(tmpdir, "token.m")
+    bin_path = os.path.join(tmpdir, "token")
 
     try:
+        with open(src_path, "w") as src:
+            src.write(OBJC_TOKEN_SOURCE)
+
         comp = subprocess.run(
             [
                 "clang",
@@ -172,9 +175,7 @@ def _compile_and_fetch_token() -> str | None:
         print("Token fetch timed out", file=sys.stderr)
         return None
     finally:
-        for p in (src_path, bin_path):
-            if os.path.exists(p):
-                os.unlink(p)
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def fetch_ttml(episode_id: str, bearer_token: str) -> str:

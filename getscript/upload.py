@@ -38,6 +38,7 @@ def get_device_id() -> str:
     os.makedirs(config_dir, exist_ok=True)
     with open(device_path, "w") as f:
         json.dump({"device_id": device_id}, f)
+    os.chmod(device_path, 0o600)
     return device_id
 
 
