@@ -1,0 +1,77 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  homebrew:
+    needs: pypi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get release info
+        id: release
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          TARBALL_URL="https://files.pythonhosted.org/packages/source/g/getscript/getscript-${VERSION}.tar.gz"
+          # Wait for PyPI to propagate, then get SHA
+          for i in 1 2 3 4 5; do
+            sleep 30
+            SHA=$(curl -sL "$TARBALL_URL" | sha256sum | cut -d' ' -f1)
+            if [ ${#SHA} -eq 64 ] && [ "$SHA" != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" ]; then
+              echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+              echo "pypi_url=$TARBALL_URL" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Waiting for PyPI propagation (attempt $i)..."
+          done
+          # Fallback to GitHub tarball
+          GH_URL="https://github.com/outerbanks73/cli-tools/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz"
+          SHA=$(curl -sL "$GH_URL" | sha256sum | cut -d' ' -f1)
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "pypi_url=$GH_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Update Homebrew formula
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          SHA="${{ steps.release.outputs.sha256 }}"
+          URL="${{ steps.release.outputs.pypi_url }}"
+
+          git clone https://x-access-token:${TAP_TOKEN}@github.com/outerbanks73/homebrew-tap.git /tmp/tap
+          cd /tmp/tap
+
+          sed -i "s|url \".*\"|url \"${URL}\"|" Formula/getscript.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" Formula/getscript.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/getscript.rb
+          git commit -m "getscript ${VERSION}"
+          git push
