@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "getscript"
-version = "0.11.0"
+version = "0.12.0"
 description = "Fast, Unix-friendly CLI for fetching transcripts from YouTube and Apple Podcasts"
 readme = "README.md"
 license = "MIT"
