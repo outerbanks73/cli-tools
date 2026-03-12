@@ -67,8 +67,9 @@ jobs:
           git clone https://x-access-token:${TAP_TOKEN}@github.com/outerbanks73/homebrew-tap.git /tmp/tap
           cd /tmp/tap
 
-          sed -i "s|url \".*\"|url \"${URL}\"|" Formula/getscript.rb
-          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" Formula/getscript.rb
+          # Only update the top-level url/sha256 (first occurrence), not resource blocks
+          sed -i "0,/^  url \".*\"/{s|^  url \".*\"|  url \"${URL}\"|}" Formula/getscript.rb
+          sed -i "0,/^  sha256 \".*\"/{s|^  sha256 \".*\"|  sha256 \"${SHA}\"|}" Formula/getscript.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
