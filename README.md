@@ -6,9 +6,9 @@ The idea behind getscript is to put the transcripts to use in a meaningful way.
 
 For example - let's say you're curious about AI Slop as a podcast topic: 
 
-$ getscript --search "AI Slop" --apple --list
-   <removing list of 10 podcasts and their podcast id's>
-$getscript --apple 1000730374732 | claude -p "Summarize the top 5 Points"
+$ getscript --search "AI Slop" --apple --list 
+   <removing list of 10 podcasts and their podcast id's> 
+$getscript --apple 1000730374732 | claude -p "Summarize the top 5 Points" 
 
 Of course you can also export to TTML, JSON, markdown and run from cron if you want to schedule things.  
 
