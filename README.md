@@ -1,6 +1,6 @@
 # getscript
 
-A fast, Unix-friendly CLI for fetching transcripts from Apple Podcasts and YouTube.
+#A fast, Unix-friendly CLI for fetching transcripts from Apple Podcasts and YouTube.  You don't need to transcribe much of anything nowadays because Apple & YouTube are #transcribing everyting for us.  'getscript' lets you use the transcripts in a more human / text friendly manner.
 
 [![PyPI](https://img.shields.io/pypi/v/getscript)](https://pypi.org/project/getscript/)
 [![CI](https://github.com/outerbanks73/cli-tools/actions/workflows/test.yml/badge.svg)](https://github.com/outerbanks73/cli-tools/actions/workflows/test.yml)
@@ -40,6 +40,9 @@ getscript --search "artificial intelligence" --apple
 ```
 
 ### YouTube
+
+# Youtube will require you to authenticate via your browser or (and more reliably) via configuration.
+# It will not be as seamless as Apple but can work reliably when configured.
 
 ```bash
 # Fetch from URL or bare ID
