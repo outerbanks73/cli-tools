@@ -1,6 +1,6 @@
-.TH GETSCRIPT 1 "2026-03-10" "getscript 0.10.0" "User Commands"
+.TH GETSCRIPT 1 "2026-03-16" "getscript 0.12.0" "User Commands"
 .SH NAME
-getscript \- fetch transcripts from YouTube and Apple Podcasts
+getscript \- fetch transcripts from Apple Podcasts and YouTube
 .SH SYNOPSIS
 .B getscript
 .RI [ URL | ID ]
@@ -12,13 +12,22 @@ getscript \- fetch transcripts from YouTube and Apple Podcasts
 .RI [ OPTIONS ]
 .SH DESCRIPTION
 .B getscript
-is a fast, Unix-friendly CLI for fetching transcripts from YouTube videos
-and Apple Podcasts episodes. Output goes to stdout and is designed to be
+is a fast, Unix-friendly CLI for fetching transcripts from Apple Podcasts
+episodes and YouTube videos. Output goes to stdout and is designed to be
 piped into
 .BR grep (1),
 .BR awk (1),
 .BR jq (1),
 or redirected to files.
+.PP
+Apple Podcasts transcripts are fetched via a compiled Obj-C helper that uses
+Apple's private AMSMescal framework (FairPlay) to obtain a bearer token, then
+queries the AMP API for TTML transcripts. This requires macOS 15.5+ with
+Xcode CLI tools.
+.PP
+YouTube transcripts are fetched via
+.B youtube-transcript-api
+with optional proxy and cookie support.
 .PP
 By default, fetched transcripts are submitted to the shared transcript
 library at
@@ -34,19 +43,19 @@ No account or login is required.
 .SH ARGUMENTS
 .TP
 .I URL
-A YouTube or Apple Podcasts URL. Supported formats:
+An Apple Podcasts or YouTube URL. Supported formats:
+.br
+\(bu https://podcasts.apple.com/...?i=EPISODE_ID
 .br
 \(bu https://youtube.com/watch?v=VIDEO_ID
 .br
 \(bu https://youtu.be/VIDEO_ID
 .br
 \(bu https://youtube.com/shorts/VIDEO_ID
-.br
-\(bu https://podcasts.apple.com/...?i=EPISODE_ID
 .TP
 .I ID
-A bare YouTube video ID (11 alphanumeric characters) or Apple Podcasts
-numeric episode ID.
+A bare Apple Podcasts numeric episode ID or YouTube video ID (11 alphanumeric
+characters).
 .SH OPTIONS
 .TP
 .BI \-o " FILE" ", \-\-output " FILE
@@ -118,9 +127,15 @@ Print version and exit.
   "output_format": "text",
   "timestamps": false,
   "search_limit": 10,
-  "no_upload": false
+  "no_upload": false,
+  "proxy": "socks5://127.0.0.1:1080",
+  "cookie_file": "/path/to/cookies.txt"
 }
 .fi
+.PP
+See
+.I examples/config.example.md
+in the source repository for a full annotated reference.
 .SS Environment Variables
 .TP
 .B GETSCRIPT_YOUTUBE_API_KEY
@@ -191,6 +206,18 @@ Usage error (invalid input, missing arguments).
 User interrupt (Ctrl-C or fzf cancellation).
 .SH EXAMPLES
 .nf
+# Fetch an Apple Podcasts transcript
+getscript "https://podcasts.apple.com/us/podcast/the-daily/id1200361736?i=1000753754819"
+
+# Fetch from a bare Apple episode ID
+getscript 1000753754819
+
+# Raw TTML XML (Apple only)
+getscript 1000753754819 \-\-ttml
+
+# Search Apple Podcasts interactively
+getscript \-\-search "artificial intelligence" \-\-apple
+
 # Fetch a YouTube transcript
 getscript "https://youtube.com/watch?v=dQw4w9WgXcQ"
 
@@ -200,14 +227,11 @@ getscript VIDEO_ID \-\-json | jq '.segments[].text'
 # Markdown with timestamps
 getscript VIDEO_ID \-\-markdown \-\-timestamps > notes.md
 
-# Apple Podcasts
-getscript 1000753754819
-
 # Search YouTube interactively
 getscript \-\-search "machine learning"
 
 # Fetch without contributing to shared library
-getscript VIDEO_ID \-\-no\-upload
+getscript EPISODE_ID \-\-no\-upload
 
 # Generate shell completions
 getscript \-\-completions zsh >> ~/.zshrc
@@ -225,6 +249,12 @@ Cached Apple bearer token (macOS only).
 .SH REQUIREMENTS
 Python 3.10+. Apple Podcasts transcripts require macOS 15.5+ with Xcode
 CLI tools.
+.PP
+Install via PyPI:
+.B pip install getscript
+.br
+Install via Homebrew:
+.B brew install outerbanks73/tap/getscript
 .SH SEE ALSO
 .BR jq (1),
 .BR fzf (1),
@@ -236,6 +266,10 @@ Technical documentation
 .PP
 .UR https://github.com/outerbanks73/cli-tools
 Source code
+.UE
+.PP
+.UR https://github.com/outerbanks73/cli-tools/blob/main/CHANGELOG.md
+Changelog
 .UE
 .SH AUTHORS
 Voxly contributors.
