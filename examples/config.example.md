@@ -13,6 +13,7 @@ Precedence: **config file < environment variables < CLI flags**.
 | `timestamps` | bool | `false` | — | `--timestamps` | Include timestamps in text output by default. |
 | `search_limit` | int | `10` | — | `--limit N` | Number of search results to return. |
 | `no_upload` | bool | `false` | `GETSCRIPT_UPLOAD=0` | `--no-upload` | Disable automatic submission to the shared transcript library. Set the env var to `0`, `false`, or `no`. |
+| `quiet` | bool | `false` | — | `--quiet` | Suppress progress and upload status messages on stderr. Recommended for batch/scripting use. |
 | `proxy` | string | *(none)* | `GETSCRIPT_PROXY` | `--proxy URL` | Proxy URL for YouTube requests. Example: `socks5://127.0.0.1:1080`. |
 | `cookie_file` | string | *(none)* | `GETSCRIPT_COOKIE_FILE` | `--cookies FILE` | Path to a Netscape-format cookie file for YouTube authentication. |
 
@@ -41,6 +42,7 @@ A fully populated config file with example values:
   "timestamps": false,
   "search_limit": 10,
   "no_upload": false,
+  "quiet": false,
   "proxy": "socks5://127.0.0.1:1080",
   "cookie_file": "/home/user/.config/getscript/cookies.txt"
 }

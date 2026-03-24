@@ -3,6 +3,18 @@
 All notable changes to getscript are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.13.0] - 2026-03-24
+
+### Added
+- Stdin support: `echo URL | getscript -` reads a URL/ID from standard input
+- Batch & scripting examples in `--help` output and documentation
+- Exit code documentation in `--help` epilog
+- Mutually exclusive output format flags (`--json`, `--ttml`, `--markdown`) — argparse now rejects conflicting combinations
+
+### Changed
+- `--quiet` now explicitly documented as suppressing both progress and upload status messages
+- KeyboardInterrupt exit code changed from 1 to 130 (Unix convention: 128 + SIGINT)
+
 ## [0.12.0] - 2026-03-12
 
 ### Added
@@ -62,6 +74,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Environment variable support (`GETSCRIPT_YOUTUBE_API_KEY`, `GETSCRIPT_PROXY`, `GETSCRIPT_COOKIE_FILE`, `NO_COLOR`)
 - Apple bearer token caching (`~/.cache/getscript/apple_token`, 30-day TTL)
 
+[0.13.0]: https://github.com/outerbanks73/cli-tools/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/outerbanks73/cli-tools/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/outerbanks73/cli-tools/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/outerbanks73/cli-tools/compare/v0.9.1a...v0.10.0

@@ -27,7 +27,19 @@ examples:
   getscript VIDEO_ID --proxy socks5://127.0.0.1:1080   # use proxy for YouTube
   getscript VIDEO_ID --cookies ~/cookies.txt            # use browser cookies
   getscript VIDEO_ID --no-upload                            # skip shared library indexing
-  getscript --completions zsh >> ~/.zshrc"""
+  getscript --completions zsh >> ~/.zshrc
+
+batch & scripting:
+  echo "dQw4w9WgXcQ" | getscript -                        # read URL/ID from stdin
+  cat urls.txt | xargs -n1 getscript --no-upload --quiet   # batch process, no noise
+  GETSCRIPT_UPLOAD=0 getscript VIDEO_ID                    # env var to skip upload
+  getscript VIDEO_ID --quiet --no-upload -o out.txt        # silent file output
+
+exit codes:
+  0    success
+  1    runtime error (network, auth, missing transcript)
+  2    usage error (bad arguments, unrecognized URL)
+  130  interrupted (Ctrl-C)"""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,17 +68,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--list", action="store_true", default=False,
         help="print search results without interactive selection",
     )
-    parser.add_argument(
+    fmt_group = parser.add_mutually_exclusive_group()
+    fmt_group.add_argument(
         "--json", action="store_true", default=None, help="structured JSON output"
     )
-    parser.add_argument(
+    fmt_group.add_argument(
         "--ttml", action="store_true", default=None, help="raw TTML XML (Apple only)"
+    )
+    fmt_group.add_argument(
+        "--markdown", action="store_true", default=None, help="Markdown output"
     )
     parser.add_argument(
         "--timestamps", action="store_true", default=None, help="include timestamps"
-    )
-    parser.add_argument(
-        "--markdown", action="store_true", default=None, help="Markdown output"
     )
     parser.add_argument(
         "--proxy", metavar="URL", default=None,
@@ -84,7 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-color", action="store_true", default=None, help="disable colors"
     )
     parser.add_argument(
-        "--quiet", action="store_true", default=None, help="suppress progress output"
+        "--quiet", action="store_true", default=None, help="suppress progress and upload status messages"
     )
     parser.add_argument(
         "--verbose", action="store_true", default=None, help="show detailed errors"
@@ -166,7 +179,7 @@ def _handle_search(args, config) -> int:
     except KeyboardInterrupt:
         progress.done()
         print("\nInterrupted.", file=sys.stderr)
-        return 1
+        return 130
     except Exception as e:
         progress.done()
         if verbose:
@@ -284,7 +297,7 @@ def _fetch_transcript(args, config) -> int:
     except KeyboardInterrupt:
         progress.done()
         print("\nInterrupted.", file=sys.stderr)
-        return 1
+        return 130
     except Exception as e:
         progress.done()
         if verbose:
@@ -304,6 +317,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.completions:
         print(generate_completions(args.completions))
         return 0
+
+    # Read from stdin if "-" is given
+    if args.input == "-":
+        if sys.stdin.isatty():
+            print("Error: stdin is a terminal. Pipe a URL/ID or use a positional argument.",
+                  file=sys.stderr)
+            return 2
+        line = sys.stdin.readline().strip()
+        if not line:
+            print("Error: no input received on stdin.", file=sys.stderr)
+            return 2
+        args.input = line
 
     # No input provided and no search
     if not args.input and not args.search:

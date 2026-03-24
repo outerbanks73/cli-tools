@@ -1,9 +1,9 @@
-.TH GETSCRIPT 1 "2026-03-16" "getscript 0.12.0" "User Commands"
+.TH GETSCRIPT 1 "2026-03-24" "getscript 0.13.0" "User Commands"
 .SH NAME
 getscript \- fetch transcripts from Apple Podcasts and YouTube
 .SH SYNOPSIS
 .B getscript
-.RI [ URL | ID ]
+.RI [ URL | ID | \- ]
 .RI [ OPTIONS ]
 .br
 .B getscript
@@ -56,6 +56,11 @@ An Apple Podcasts or YouTube URL. Supported formats:
 .I ID
 A bare Apple Podcasts numeric episode ID or YouTube video ID (11 alphanumeric
 characters).
+.TP
+.B \-
+Read a URL or ID from standard input (one per line). Useful for piping:
+.br
+echo "dQw4w9WgXcQ" | getscript \-
 .SH OPTIONS
 .TP
 .BI \-o " FILE" ", \-\-output " FILE
@@ -82,16 +87,25 @@ Print search results as a numbered list without interactive selection.
 .B \-\-json
 Output structured JSON. Pipe to
 .BR jq (1)
-for filtering.
+for filtering. Mutually exclusive with
+.B \-\-ttml
+and
+.BR \-\-markdown .
 .TP
 .B \-\-ttml
-Output raw TTML XML (Apple Podcasts only).
+Output raw TTML XML (Apple Podcasts only). Mutually exclusive with
+.B \-\-json
+and
+.BR \-\-markdown .
 .TP
 .B \-\-timestamps
-Include timestamps in text output.
+Include timestamps in text output. Can be combined with any output format.
 .TP
 .B \-\-markdown
-Output as Markdown with YAML frontmatter.
+Output as Markdown with YAML frontmatter. Mutually exclusive with
+.B \-\-json
+and
+.BR \-\-ttml .
 .TP
 .BI \-\-proxy " URL"
 Proxy URL for YouTube requests (e.g., socks5://127.0.0.1:1080).
@@ -106,7 +120,8 @@ Disable automatic submission to the shared transcript library.
 Disable colored output.
 .TP
 .B \-\-quiet
-Suppress progress output on stderr.
+Suppress progress and upload status messages on stderr. Recommended for
+batch and scripting use.
 .TP
 .B \-\-verbose
 Show detailed error tracebacks.
@@ -235,6 +250,18 @@ getscript EPISODE_ID \-\-no\-upload
 
 # Generate shell completions
 getscript \-\-completions zsh >> ~/.zshrc
+
+# Read URL/ID from stdin
+echo "dQw4w9WgXcQ" | getscript \-
+
+# Batch process a list of IDs
+cat urls.txt | xargs \-n1 getscript \-\-no\-upload \-\-quiet
+
+# Disable upload via environment variable
+GETSCRIPT_UPLOAD=0 getscript VIDEO_ID
+
+# Silent file output for scripting
+getscript VIDEO_ID \-\-quiet \-\-no\-upload \-o out.txt
 .fi
 .SH FILES
 .TP

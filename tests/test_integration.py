@@ -1,12 +1,14 @@
 """Integration tests using fixtures (no live API calls)."""
 
+import io
 import json
 import subprocess
 import sys
+from unittest.mock import patch
 
 import pytest
 
-from getscript.cli import main
+from getscript.cli import build_parser, main
 
 
 class TestCLI:
@@ -63,10 +65,57 @@ class TestCLI:
 
     def test_no_upload_flag_default(self):
         """--no-upload defaults to None when not specified."""
-        from getscript.cli import build_parser
         parser = build_parser()
         args = parser.parse_args(["VIDEO_ID"])
         assert args.no_upload is None
+
+    def test_stdin_dash(self, monkeypatch, capsys):
+        """getscript - reads URL/ID from stdin and attempts fetch."""
+        monkeypatch.setattr("sys.stdin", io.StringIO("dQw4w9WgXcQ\n"))
+        # Will fail at network level (exit 1), but must not fail at arg parsing (exit 2)
+        result = main(["-"])
+        assert result != 2
+
+    def test_stdin_dash_empty(self, monkeypatch, capsys):
+        """getscript - with empty stdin returns exit code 2."""
+        monkeypatch.setattr("sys.stdin", io.StringIO(""))
+        result = main(["-"])
+        assert result == 2
+        captured = capsys.readouterr()
+        assert "no input received" in captured.err
+
+    def test_stdin_dash_tty(self, monkeypatch, capsys):
+        """getscript - when stdin is a TTY returns exit code 2."""
+        mock_stdin = io.StringIO("ignored")
+        mock_stdin.isatty = lambda: True
+        monkeypatch.setattr("sys.stdin", mock_stdin)
+        result = main(["-"])
+        assert result == 2
+        captured = capsys.readouterr()
+        assert "stdin is a terminal" in captured.err
+
+    def test_mutually_exclusive_output_flags(self):
+        """--json and --markdown together should be rejected by argparse."""
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--json", "--markdown", "some_id"])
+        assert exc_info.value.code == 2
+
+    def test_exit_codes_in_help(self, capsys):
+        """--help output should document exit codes."""
+        with pytest.raises(SystemExit):
+            main(["--help"])
+        captured = capsys.readouterr()
+        assert "exit codes:" in captured.out
+
+    def test_quiet_help_mentions_upload(self):
+        """--quiet help text should mention upload status suppression."""
+        parser = build_parser()
+        for action in parser._actions:
+            if "--quiet" in action.option_strings:
+                assert "upload" in action.help
+                break
+        else:
+            pytest.fail("--quiet flag not found in parser")
 
 
 class TestPipeCompatibility:

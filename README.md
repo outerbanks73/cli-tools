@@ -65,6 +65,8 @@ getscript VIDEO_ID --cookies ~/cookies.txt
 
 ### Output Formats
 
+Output formats are mutually exclusive (`--json`, `--ttml`, `--markdown`). The `--timestamps` flag can be combined with any format.
+
 ```bash
 # JSON piped to jq
 getscript EPISODE_ID --json | jq '.segments[].text'
@@ -87,6 +89,22 @@ getscript --search "machine learning"
 
 # List results without fzf
 getscript --search "topic" --list --limit 20
+```
+
+### Stdin & Batch Processing
+
+```bash
+# Read URL/ID from stdin
+echo "dQw4w9WgXcQ" | getscript -
+
+# Batch process a list of IDs
+cat urls.txt | xargs -n1 getscript --no-upload --quiet
+
+# Disable upload via environment variable
+GETSCRIPT_UPLOAD=0 getscript VIDEO_ID
+
+# Silent file output for scripting
+getscript VIDEO_ID --quiet --no-upload -o out.txt
 ```
 
 ### Shared Transcript Library
@@ -144,9 +162,18 @@ See [examples/config.example.md](examples/config.example.md) for a full annotate
 
 Every fetch contributes to the shared library at [voxlytranscribes.com](https://voxlytranscribes.com). Submissions go through a quarantine pipeline: server-side re-fetch, content hash verification, and provenance tracking before promotion to the canonical library. See the [technical docs](https://voxlytranscribes.com/docs/getscript) for details.
 
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Runtime error (network, auth, missing transcript) |
+| `2` | Usage error (bad arguments, unrecognized URL) |
+| `130` | Interrupted (Ctrl-C) |
+
 ## Testing
 
-100 tests across 9 modules. CI matrix: Python 3.10–3.13 on Ubuntu and macOS.
+106 tests across 10 modules. CI matrix: Python 3.10–3.13 on Ubuntu and macOS.
 
 ```bash
 pytest -v
