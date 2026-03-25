@@ -6,9 +6,12 @@ The idea behind getscript is to put the transcripts to use in a meaningful way.
 
 For example - let's say you're curious about AI Slop as a podcast topic:
 
+```
 $ getscript --search "AI Slop" --list
-   <removing list of 10 podcasts and their podcast id's>
 $ getscript 1000730374732 | claude -p "Summarize the top 5 Points"
+```
+
+Or just run `getscript` with no arguments — it'll walk you through searching, picking, and saving a transcript.
 
 Of course you can also export to TTML, JSON, markdown and run from cron if you want to schedule things.
 
@@ -33,6 +36,24 @@ Requires Python 3.10+. Apple Podcasts transcripts require macOS 15.5+ with Xcode
 
 ## Quick Start
 
+### Interactive Mode (no arguments)
+
+Just run `getscript` with no arguments:
+
+```
+$ getscript
+Enter your search term and I'll find podcasts that match it: artificial intelligence
+  1. 1000123456  The AI Show - Episode 42    The AI Podcast    45:12
+  2. 1000654321  Understanding GPT Models     Tech Talk Daily   32:05
+  ...
+Select a podcast (number): 1
+Save as (default: The_AI_Show_-_Episode_42.txt):
+```
+
+The transcript is saved to `~/Documents/` as a `.txt` file.
+
+### Direct Fetch
+
 ```bash
 # Fetch from an episode URL
 getscript "https://podcasts.apple.com/us/podcast/the-daily/id1200361736?i=1000753754819"
@@ -40,10 +61,10 @@ getscript "https://podcasts.apple.com/us/podcast/the-daily/id1200361736?i=100075
 # Fetch from a bare episode ID
 getscript 1000753754819
 
-# Raw TTML XML output
-getscript 1000753754819 --ttml
+# Pipe to Claude for AI summarization
+getscript 1000753754819 | claude -p "Summarize the 5 most important points"
 
-# Search Apple Podcasts interactively (requires fzf)
+# Search and pick via fzf
 getscript --search "artificial intelligence"
 ```
 
@@ -58,6 +79,9 @@ getscript EPISODE_ID --json | jq '.segments[].text'
 # Markdown with timestamps
 getscript EPISODE_ID --markdown --timestamps > notes.md
 
+# Raw TTML XML
+getscript EPISODE_ID --ttml
+
 # Write to file
 getscript EPISODE_ID -o transcript.txt
 ```
@@ -65,7 +89,7 @@ getscript EPISODE_ID -o transcript.txt
 ### Search
 
 ```bash
-# Search Apple Podcasts (requires fzf)
+# Search Apple Podcasts (pick via fzf)
 getscript --search "climate change"
 
 # List results without fzf
@@ -127,6 +151,16 @@ Environment variables:
 Precedence: config file < environment variables < CLI flags.
 
 See [examples/config.example.md](examples/config.example.md) for a full annotated reference.
+
+## Man Page
+
+pip does not install man pages. To install manually:
+
+```bash
+sudo cp man/getscript.1 /usr/local/share/man/man1/
+```
+
+Homebrew users get the man page automatically.
 
 ## How It Works
 

@@ -1,4 +1,4 @@
-.TH GETSCRIPT 1 "2026-03-25" "getscript 0.14.0" "User Commands"
+.TH GETSCRIPT 1 "2026-03-25" "getscript 0.15.0" "User Commands"
 .SH NAME
 getscript \- fetch transcripts from Apple Podcasts
 .SH SYNOPSIS
@@ -10,6 +10,9 @@ getscript \- fetch transcripts from Apple Podcasts
 .B \-\-search
 .I QUERY
 .RI [ OPTIONS ]
+.br
+.B getscript
+(interactive mode \(em no arguments)
 .SH DESCRIPTION
 .B getscript
 is a fast, Unix-friendly CLI for fetching transcripts from Apple Podcasts
@@ -17,7 +20,15 @@ episodes. Output goes to stdout and is designed to be piped into
 .BR grep (1),
 .BR awk (1),
 .BR jq (1),
+.BR claude (1),
 or redirected to files.
+.PP
+When run with no arguments in a terminal,
+.B getscript
+enters interactive mode: it prompts for a search term, displays results,
+lets you pick an episode, and saves the transcript to
+.I ~/Documents/
+as a .txt file.
 .PP
 Transcripts are fetched via a compiled Obj-C helper that uses Apple's private
 AMSMescal framework (FairPlay) to obtain a bearer token, then queries the AMP
@@ -218,6 +229,12 @@ GETSCRIPT_UPLOAD=0 getscript EPISODE_ID
 
 # Silent file output for scripting
 getscript EPISODE_ID \-\-quiet \-\-no\-upload \-o out.txt
+
+# Pipe to Claude for AI summarization
+getscript 1000753754819 | claude \-p "Summarize the 5 most important points"
+
+# Interactive mode (no arguments, prompts for search and saves to ~/Documents/)
+getscript
 
 # Generate shell completions
 getscript \-\-completions zsh >> ~/.zshrc

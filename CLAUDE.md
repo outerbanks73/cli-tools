@@ -6,9 +6,16 @@ Target Users: macOS developers who value speed and pipes (`|`).
 
 ## Build & Test Commands
 - **Install (editable):** `pip install -e .`
-- **Run locally:** `getscript [URL|ID] [options]`
+- **Run locally:** `getscript [URL|ID] [options]` or just `getscript` for interactive mode
 - **Test suite:** `pytest` or `pytest -v`
 - **Requires:** Python 3.10+, macOS 15.5+ with Xcode CLI tools for transcript fetching
+
+## Interactive Mode
+Running `getscript` with no arguments enters interactive mode:
+1. Prompts for a search term
+2. Shows up to 20 results
+3. Lets user pick by number
+4. Prompts for filename, saves to `~/Documents/` as `.txt`
 
 ## CLI Design Principles (CRITICAL)
 1. **Silence is Golden:** No "Hello!" or "Welcome!" banners unless `--verbose` is used.
