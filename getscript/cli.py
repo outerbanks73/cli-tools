@@ -28,8 +28,17 @@ common options:
   --quiet          suppress progress/status messages
   -h, --help       show this help message
 
+example:
+  getscript 1000753754819 | claude -p "Summarize the 5 most important points"
+
 Run with no arguments for interactive search.
-Full docs: man getscript  |  https://github.com/outerbanks73/cli-tools"""
+
+man page: pip does not install man pages automatically.
+  Install from source:  sudo cp man/getscript.1 /usr/local/share/man/man1/
+  Or read it directly:  man ./man/getscript.1  (from the repo root)
+  Homebrew users get the man page automatically.
+
+Full docs: https://github.com/outerbanks73/cli-tools"""
 
 EXAMPLES = """\
 examples:
@@ -132,6 +141,17 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _sanitize_filename(name: str) -> str:
+    """Turn a podcast title into a safe filename."""
+    import re
+    # Replace problematic chars with underscores
+    name = re.sub(r'[/<>:"|?*\\]', '_', name)
+    # Collapse whitespace/underscores
+    name = re.sub(r'[\s_]+', '_', name).strip('_')
+    # Truncate to reasonable length
+    return name[:80] if name else "transcript"
+
+
 def _interactive_search(config) -> int:
     """Interactive mode: prompt for search, show results, let user pick."""
     from getscript.picker import format_list
@@ -175,6 +195,24 @@ def _interactive_search(config) -> int:
 
         selected = results[int(choice) - 1]
 
+        # Prompt for filename
+        import os
+        docs_dir = os.path.expanduser("~/Documents")
+        default_name = _sanitize_filename(selected.get("title", selected["id"]))
+        try:
+            filename = input(f"Save as (default: {default_name}.txt): ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("", file=sys.stderr)
+            return 130
+
+        if not filename:
+            filename = f"{default_name}.txt"
+        if not filename.endswith(".txt"):
+            filename += ".txt"
+
+        os.makedirs(docs_dir, exist_ok=True)
+        output_path = os.path.join(docs_dir, filename)
+
     except KeyboardInterrupt:
         progress.done()
         print("\nInterrupted.", file=sys.stderr)
@@ -195,7 +233,7 @@ def _interactive_search(config) -> int:
     args = _Args()
     args.input = selected["id"]
     args.search = None
-    args.output = None
+    args.output = output_path
     args._title = selected.get("title")
     return _fetch_transcript(args, config)
 

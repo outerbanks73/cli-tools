@@ -3,6 +3,13 @@
 All notable changes to getscript are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.15.0] - 2026-03-25
+
+### Added
+- Interactive mode now prompts for a filename and saves transcript to ~/Documents/ as .txt
+- Help output includes example of piping to `claude` for AI summarization
+- Help output explains how to install the man page (pip does not install it automatically)
+
 ## [0.14.1] - 2026-03-25
 
 ### Added
@@ -87,6 +94,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Environment variable support (`GETSCRIPT_UPLOAD`, `NO_COLOR`)
 - Apple bearer token caching (`~/.cache/getscript/apple_token`, 30-day TTL)
 
+[0.15.0]: https://github.com/outerbanks73/cli-tools/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/outerbanks73/cli-tools/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/outerbanks73/cli-tools/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/outerbanks73/cli-tools/compare/v0.12.0...v0.13.0
