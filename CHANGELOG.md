@@ -3,6 +3,12 @@
 All notable changes to getscript are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.14.1] - 2026-03-25
+
+### Added
+- Interactive mode: running `getscript` with no arguments prompts for a search term, shows 20 results, and lets you pick one
+- Concise `-h`/`--help` output focused on common options (full docs via `man getscript`)
+
 ## [0.14.0] - 2026-03-25
 
 ### Changed
@@ -81,6 +87,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Environment variable support (`GETSCRIPT_UPLOAD`, `NO_COLOR`)
 - Apple bearer token caching (`~/.cache/getscript/apple_token`, 30-day TTL)
 
+[0.14.1]: https://github.com/outerbanks73/cli-tools/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/outerbanks73/cli-tools/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/outerbanks73/cli-tools/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/outerbanks73/cli-tools/compare/v0.11.0...v0.12.0
