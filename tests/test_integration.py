@@ -18,7 +18,8 @@ class TestCLI:
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
         assert "getscript" in captured.out
-        assert "examples:" in captured.out
+        assert "common options:" in captured.out
+        assert "Full docs:" in captured.out
 
     def test_no_input(self, capsys):
         result = main([])
@@ -98,12 +99,12 @@ class TestCLI:
             main(["--json", "--markdown", "some_id"])
         assert exc_info.value.code == 2
 
-    def test_exit_codes_in_help(self, capsys):
-        """--help output should document exit codes."""
+    def test_help_mentions_interactive(self, capsys):
+        """--help output should mention interactive search."""
         with pytest.raises(SystemExit):
             main(["--help"])
         captured = capsys.readouterr()
-        assert "exit codes:" in captured.out
+        assert "interactive search" in captured.out
 
     def test_quiet_help_mentions_upload(self):
         """--quiet help text should mention upload status suppression."""

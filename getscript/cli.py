@@ -10,6 +10,27 @@ from getscript.detect import detect_source
 from getscript.output import format_output
 from getscript.progress import Progress
 
+HELP_SHORT = """\
+usage: getscript [EPISODE_ID | URL | -] [options]
+       getscript --search QUERY [--list] [--limit N]
+       getscript                          (interactive search)
+
+Fetch transcripts from Apple Podcasts.
+
+common options:
+  --search QUERY   search Apple Podcasts by topic or creator
+  --json           structured JSON output
+  --ttml           raw TTML XML output
+  --markdown       Markdown with YAML frontmatter
+  --timestamps     include timestamps in output
+  -o FILE          write output to file
+  --no-upload      skip shared library submission
+  --quiet          suppress progress/status messages
+  -h, --help       show this help message
+
+Run with no arguments for interactive search.
+Full docs: man getscript  |  https://github.com/outerbanks73/cli-tools"""
+
 EXAMPLES = """\
 examples:
   getscript 1000753754819                              # Apple episode ID
@@ -38,13 +59,26 @@ exit codes:
   130  interrupted (Ctrl-C)"""
 
 
+class _ShortHelpAction(argparse.Action):
+    """Print short help and exit."""
+
+    def __init__(self, option_strings, dest=argparse.SUPPRESS, default=argparse.SUPPRESS, **kwargs):
+        super().__init__(option_strings, dest=dest, default=default, nargs=0, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        print(HELP_SHORT)
+        raise SystemExit(0)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="getscript",
         description="Fetch transcripts from Apple Podcasts.",
         epilog=EXAMPLES,
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        add_help=False,
     )
+    parser.add_argument("-h", "--help", action=_ShortHelpAction, help="show help")
     parser.add_argument("input", nargs="?", help="Apple Podcasts URL or episode ID")
     parser.add_argument(
         "-o", "--output", metavar="FILE", help="write output to file"
@@ -96,6 +130,74 @@ def build_parser() -> argparse.ArgumentParser:
         "--version", action="version", version=f"getscript {__version__}"
     )
     return parser
+
+
+def _interactive_search(config) -> int:
+    """Interactive mode: prompt for search, show results, let user pick."""
+    from getscript.picker import format_list
+    from getscript.search import search_apple
+
+    try:
+        query = input("Enter your search term and I'll find podcasts that match it: ")
+    except (KeyboardInterrupt, EOFError):
+        print("", file=sys.stderr)
+        return 130
+
+    query = query.strip()
+    if not query:
+        print("No search term entered.", file=sys.stderr)
+        return 2
+
+    progress = Progress(quiet=config.get("quiet", False))
+
+    try:
+        progress.update("Searching Apple Podcasts...")
+        results = search_apple(query, limit=20)
+        progress.done()
+
+        if not results:
+            print(f"No results for: {query}", file=sys.stderr)
+            return 1
+
+        print(format_list(results))
+        print(file=sys.stderr)
+
+        try:
+            choice = input("Select a podcast (number): ")
+        except (KeyboardInterrupt, EOFError):
+            print("", file=sys.stderr)
+            return 130
+
+        choice = choice.strip()
+        if not choice.isdigit() or int(choice) < 1 or int(choice) > len(results):
+            print(f"Invalid selection. Enter a number from 1 to {len(results)}.", file=sys.stderr)
+            return 2
+
+        selected = results[int(choice) - 1]
+
+    except KeyboardInterrupt:
+        progress.done()
+        print("\nInterrupted.", file=sys.stderr)
+        return 130
+    except Exception as e:
+        progress.done()
+        if config.get("verbose", False):
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+        else:
+            print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    # Build a minimal args-like object for _fetch_transcript
+    class _Args:
+        pass
+
+    args = _Args()
+    args.input = selected["id"]
+    args.search = None
+    args.output = None
+    args._title = selected.get("title")
+    return _fetch_transcript(args, config)
 
 
 def _handle_search(args, config) -> int:
@@ -288,9 +390,24 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         args.input = line
 
-    # No input provided and no search
+    # No input and no search — interactive mode if TTY, short help if piped
     if not args.input and not args.search:
-        parser.print_help(sys.stderr)
+        if sys.stdin.isatty() and sys.stderr.isatty():
+            # Load config and enter interactive search
+            file_config = load_config()
+            cli_flags = {
+                "json": args.json,
+                "ttml": args.ttml,
+                "timestamps": args.timestamps,
+                "markdown": args.markdown,
+                "no_color": args.no_color,
+                "quiet": args.quiet,
+                "verbose": args.verbose,
+                "no_upload": args.no_upload,
+            }
+            config = merge_config(file_config, cli_flags)
+            return _interactive_search(config)
+        print(HELP_SHORT, file=sys.stderr)
         return 2
 
     # Mutual exclusivity: --search and positional input
