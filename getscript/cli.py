@@ -12,28 +12,24 @@ from getscript.progress import Progress
 
 EXAMPLES = """\
 examples:
-  getscript "https://youtube.com/watch?v=dQw4w9WgXcQ"
-  getscript "https://youtu.be/dQw4w9WgXcQ" --timestamps
-  getscript "https://youtube.com/watch?v=dQw4w9WgXcQ" --json | jq .
-  getscript "https://youtube.com/watch?v=dQw4w9WgXcQ" --markdown > notes.md
   getscript 1000753754819                              # Apple episode ID
   getscript 1000753754819 --ttml                       # raw TTML XML
+  getscript 1000753754819 --timestamps                 # include timestamps
   getscript "https://podcasts.apple.com/...?i=12345"
-  getscript "https://youtube.com/watch?v=..." -o transcript.txt
-  getscript --search "my favorite YouTuber"              # search YouTube, pick via fzf
-  getscript --search "my favorite podcaster" --apple     # search Apple Podcasts
+  getscript EPISODE_ID --json | jq .                   # JSON piped to jq
+  getscript EPISODE_ID --markdown > notes.md
+  getscript EPISODE_ID -o transcript.txt
+  getscript EPISODE_ID --no-upload                     # skip shared library indexing
+  getscript --search "artificial intelligence"         # search Apple Podcasts, pick via fzf
   getscript --search "topic" --list                    # print results, no fzf
   getscript --search "topic" --limit 20                # control result count
-  getscript VIDEO_ID --proxy socks5://127.0.0.1:1080   # use proxy for YouTube
-  getscript VIDEO_ID --cookies ~/cookies.txt            # use browser cookies
-  getscript VIDEO_ID --no-upload                            # skip shared library indexing
   getscript --completions zsh >> ~/.zshrc
 
 batch & scripting:
-  echo "dQw4w9WgXcQ" | getscript -                        # read URL/ID from stdin
-  cat urls.txt | xargs -n1 getscript --no-upload --quiet   # batch process, no noise
-  GETSCRIPT_UPLOAD=0 getscript VIDEO_ID                    # env var to skip upload
-  getscript VIDEO_ID --quiet --no-upload -o out.txt        # silent file output
+  echo "1000753754819" | getscript -                       # read ID from stdin
+  cat ids.txt | xargs -n1 getscript --no-upload --quiet    # batch process, no noise
+  GETSCRIPT_UPLOAD=0 getscript EPISODE_ID                  # env var to skip upload
+  getscript EPISODE_ID --quiet --no-upload -o out.txt      # silent file output
 
 exit codes:
   0    success
@@ -45,20 +41,16 @@ exit codes:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="getscript",
-        description="Fetch transcripts from YouTube and Apple Podcasts.",
+        description="Fetch transcripts from Apple Podcasts.",
         epilog=EXAMPLES,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("input", nargs="?", help="URL or ID to fetch transcript for")
+    parser.add_argument("input", nargs="?", help="Apple Podcasts URL or episode ID")
     parser.add_argument(
         "-o", "--output", metavar="FILE", help="write output to file"
     )
     parser.add_argument(
-        "--search", metavar="QUERY", help="search for content by topic or creator"
-    )
-    parser.add_argument(
-        "--apple", action="store_true", default=False,
-        help="search Apple Podcasts instead of YouTube",
+        "--search", metavar="QUERY", help="search Apple Podcasts by topic or creator"
     )
     parser.add_argument(
         "--limit", type=int, default=None, metavar="N",
@@ -73,21 +65,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--json", action="store_true", default=None, help="structured JSON output"
     )
     fmt_group.add_argument(
-        "--ttml", action="store_true", default=None, help="raw TTML XML (Apple only)"
+        "--ttml", action="store_true", default=None, help="raw TTML XML output"
     )
     fmt_group.add_argument(
         "--markdown", action="store_true", default=None, help="Markdown output"
     )
     parser.add_argument(
         "--timestamps", action="store_true", default=None, help="include timestamps"
-    )
-    parser.add_argument(
-        "--proxy", metavar="URL", default=None,
-        help="proxy URL for YouTube requests (e.g. socks5://host:port)",
-    )
-    parser.add_argument(
-        "--cookies", metavar="FILE", default=None,
-        help="Netscape cookie file for YouTube auth (e.g. cookies.txt)",
     )
     parser.add_argument(
         "--no-upload", action="store_true", default=None,
@@ -117,14 +101,14 @@ def build_parser() -> argparse.ArgumentParser:
 def _handle_search(args, config) -> int:
     """Handle --search mode: search, select, then fetch transcript."""
     from getscript.picker import format_list, pick_result
-    from getscript.search import search_apple, search_youtube
+    from getscript.search import search_apple
 
     verbose = config.get("verbose", False)
     quiet = config.get("quiet", False)
     limit = args.limit or config.get("search_limit", 10)
 
     # Apple transcript fetch requires macOS — warn before searching unless --list
-    if args.apple and not args.list:
+    if not args.list:
         if sys.platform != "darwin":
             print(
                 "Apple Podcasts transcripts require macOS 15.5+ with Xcode CLI tools.\n"
@@ -136,22 +120,8 @@ def _handle_search(args, config) -> int:
     progress = Progress(quiet=quiet)
 
     try:
-        if args.apple:
-            progress.update("Searching Apple Podcasts...")
-            results = search_apple(args.search, limit=limit)
-        else:
-            api_key = config.get("youtube_api_key")
-            if not api_key:
-                print(
-                    "YouTube API key required for --search.\n"
-                    "Set GETSCRIPT_YOUTUBE_API_KEY env var or add "
-                    '"youtube_api_key" to ~/.config/getscript/config.json\n'
-                    "Get a key: https://console.cloud.google.com/apis/credentials",
-                    file=sys.stderr,
-                )
-                return 1
-            progress.update("Searching YouTube...")
-            results = search_youtube(args.search, api_key, limit=limit)
+        progress.update("Searching Apple Podcasts...")
+        results = search_apple(args.search, limit=limit)
 
         progress.done()
 
@@ -220,34 +190,24 @@ def _fetch_transcript(args, config) -> int:
         progress.update("Detecting source...")
         source, source_id = detect_source(args.input)
 
-        ttml_raw = None
+        from getscript.apple import fetch_ttml, get_bearer_token, ttml_to_segments
 
-        if source == "youtube":
-            progress.update("Fetching YouTube transcript...")
-            from getscript.youtube import fetch_transcript
+        cache_dir = get_cache_dir()
 
-            segments = fetch_transcript(source_id, config)
+        progress.update("Authenticating with Apple...")
+        token = get_bearer_token(cache_dir)
+        if not token:
             progress.done()
+            print(
+                "Failed to get Apple bearer token. Requires macOS 15.5+.",
+                file=sys.stderr,
+            )
+            return 1
 
-        elif source == "apple":
-            from getscript.apple import fetch_ttml, get_bearer_token, ttml_to_segments
-
-            cache_dir = get_cache_dir()
-
-            progress.update("Authenticating with Apple...")
-            token = get_bearer_token(cache_dir)
-            if not token:
-                progress.done()
-                print(
-                    "Failed to get Apple bearer token. Requires macOS 15.5+.",
-                    file=sys.stderr,
-                )
-                return 1
-
-            progress.update("Fetching Apple Podcasts transcript...")
-            ttml_raw = fetch_ttml(source_id, token)
-            segments = ttml_to_segments(ttml_raw)
-            progress.done()
+        progress.update("Fetching Apple Podcasts transcript...")
+        ttml_raw = fetch_ttml(source_id, token)
+        segments = ttml_to_segments(ttml_raw)
+        progress.done()
 
         # Format output
         result = format_output(
@@ -269,11 +229,9 @@ def _fetch_transcript(args, config) -> int:
 
         # Upload to shared library (on by default, disable with --no-upload)
         if not config.get("no_upload"):
-            from getscript.upload import fetch_title, upload_transcript
+            from getscript.upload import upload_transcript
 
             title = getattr(args, "_title", None)
-            if not title:
-                title = fetch_title(source, source_id)
             resp = upload_transcript(source, source_id, segments, title, config)
             if resp and not quiet:
                 status = resp.get("status", "unknown")
@@ -351,8 +309,6 @@ def main(argv: list[str] | None = None) -> int:
         "no_color": args.no_color,
         "quiet": args.quiet,
         "verbose": args.verbose,
-        "proxy": args.proxy,
-        "cookie_file": args.cookies,
         "no_upload": args.no_upload,
     }
     config = merge_config(file_config, cli_flags)

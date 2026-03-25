@@ -1,9 +1,7 @@
 {
-  "youtube_api_key": "AIzaSyD-EXAMPLE-FAKE-KEY-1234567890ab",
   "output_format": "text",
   "timestamps": false,
   "search_limit": 10,
   "no_upload": false,
-  "proxy": "socks5://127.0.0.1:1080",
-  "cookie_file": "/home/user/.config/getscript/cookies.txt"
+  "quiet": false
 }

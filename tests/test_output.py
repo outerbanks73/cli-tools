@@ -45,20 +45,20 @@ class TestFormatText:
 
 class TestFormatJson:
     def test_valid_json(self):
-        result = format_json(SAMPLE_SEGMENTS, "youtube", "abc123")
+        result = format_json(SAMPLE_SEGMENTS, "apple", "abc123")
         parsed = json.loads(result)
-        assert parsed["source"] == "youtube"
+        assert parsed["source"] == "apple"
         assert parsed["id"] == "abc123"
         assert "Hello world" in parsed["text"]
         assert len(parsed["segments"]) == 3
 
     def test_with_timestamps(self):
-        result = format_json(SAMPLE_SEGMENTS, "youtube", "abc123", timestamps=True)
+        result = format_json(SAMPLE_SEGMENTS, "apple", "abc123", timestamps=True)
         parsed = json.loads(result)
         assert "start" in parsed["segments"][0]
 
     def test_without_timestamps(self):
-        result = format_json(SAMPLE_SEGMENTS, "youtube", "abc123", timestamps=False)
+        result = format_json(SAMPLE_SEGMENTS, "apple", "abc123", timestamps=False)
         parsed = json.loads(result)
         assert "start" not in parsed["segments"][0]
         assert "text" in parsed["segments"][0]
@@ -66,15 +66,15 @@ class TestFormatJson:
 
 class TestFormatMarkdown:
     def test_has_frontmatter(self):
-        result = format_markdown(SAMPLE_SEGMENTS, "youtube", "abc123")
+        result = format_markdown(SAMPLE_SEGMENTS, "apple", "abc123")
         assert result.startswith("---\n")
-        assert "source: youtube" in result
+        assert "source: apple" in result
         assert 'id: "abc123"' in result
         assert "# Transcript" in result
 
     def test_with_timestamps(self):
         result = format_markdown(
-            SAMPLE_SEGMENTS, "youtube", "abc123", timestamps=True
+            SAMPLE_SEGMENTS, "apple", "abc123", timestamps=True
         )
         assert "**[00:00]** Hello world" in result
 
@@ -93,7 +93,7 @@ class TestFormatOutput:
 
     def test_routes_to_json(self):
         result = format_output(
-            SAMPLE_SEGMENTS, fmt="json", source="youtube", source_id="abc"
+            SAMPLE_SEGMENTS, fmt="json", source="apple", source_id="abc"
         )
         parsed = json.loads(result)
-        assert parsed["source"] == "youtube"
+        assert parsed["source"] == "apple"

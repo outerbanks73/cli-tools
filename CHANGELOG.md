@@ -3,13 +3,27 @@
 All notable changes to getscript are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.14.0] - 2026-03-25
+
+### Changed
+- **Breaking:** Removed all YouTube support. getscript is now exclusively an Apple Podcasts transcript tool.
+- Removed `--proxy`, `--cookies`, and `--apple` flags
+- Removed `youtube-transcript-api` and `requests` dependencies
+- `--search` now defaults to Apple Podcasts (no `--apple` flag needed)
+- Simplified source detection to Apple Podcasts URLs and numeric episode IDs only
+
+### Removed
+- `getscript/youtube.py` module
+- `GETSCRIPT_YOUTUBE_API_KEY`, `GETSCRIPT_PROXY`, `GETSCRIPT_COOKIE_FILE` environment variables
+- `youtube_api_key`, `proxy`, `cookie_file` config keys
+
 ## [0.13.0] - 2026-03-24
 
 ### Added
-- Stdin support: `echo URL | getscript -` reads a URL/ID from standard input
+- Stdin support: `echo ID | getscript -` reads a URL/ID from standard input
 - Batch & scripting examples in `--help` output and documentation
 - Exit code documentation in `--help` epilog
-- Mutually exclusive output format flags (`--json`, `--ttml`, `--markdown`) — argparse now rejects conflicting combinations
+- Mutually exclusive output format flags (`--json`, `--ttml`, `--markdown`)
 
 ### Changed
 - `--quiet` now explicitly documented as suppressing both progress and upload status messages
@@ -34,27 +48,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Provenance tracking: anonymous device ID, content hashing, trust scoring
 - Automatic upload on every fetch (transcripts submitted to voxlytranscribes.com)
 - `--no-upload` flag and `GETSCRIPT_UPLOAD` env var to disable submissions
-- `device.json` for anonymous device identification
 - Man page (`man/getscript.1`)
-
-### Changed
-- Upload is now on by default (was opt-in via `--upload` in 0.10.0)
 
 ## [0.10.0] - 2026-03-10
 
 ### Added
 - `--upload` flag to contribute fetched transcripts to the shared Voxly transcript pool
-- Auto-fetch YouTube title via oembed API for direct uploads
+- Auto-fetch episode title for direct uploads
 
 ## [0.9.1a] - 2026-03-10
 
 ### Added
-- `--search` mode with interactive fzf selection (YouTube API v3 and iTunes Search API)
-- `--apple` flag to search Apple Podcasts instead of YouTube
+- `--search` mode with interactive fzf selection (iTunes Search API)
 - `--list` flag to print search results without fzf
 - `--limit` flag to control number of search results
-- `--proxy` and `--cookies` options for YouTube authentication
-- Early warning when `--search --apple` is used on non-macOS
+- Early warning when `--search` is used on non-macOS
 
 ### Changed
 - Code quality improvements, documentation, and cleanup
@@ -62,18 +70,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ## [0.9.0] - 2026-03-09
 
 ### Added
-- Initial release: unified transcript CLI for YouTube and Apple Podcasts
+- Initial release: Apple Podcasts transcript CLI
 - Apple Podcasts transcript fetching via Obj-C helper (AMSMescal/FairPlay bearer token, AMP API)
-- YouTube transcript fetching via `youtube-transcript-api`
-- URL and bare ID detection (YouTube 11-char IDs, Apple numeric episode IDs)
-- Output formats: plain text, JSON, Markdown with YAML frontmatter, raw TTML (Apple only)
+- URL and bare ID detection (Apple numeric episode IDs, Apple Podcasts URLs)
+- Output formats: plain text, JSON, Markdown with YAML frontmatter, raw TTML
 - `--timestamps` flag for timestamped text output
 - `-o` / `--output` flag for file output
 - Shell completion generation for bash, zsh, and fish
 - XDG-compliant config file (`~/.config/getscript/config.json`)
-- Environment variable support (`GETSCRIPT_YOUTUBE_API_KEY`, `GETSCRIPT_PROXY`, `GETSCRIPT_COOKIE_FILE`, `NO_COLOR`)
+- Environment variable support (`GETSCRIPT_UPLOAD`, `NO_COLOR`)
 - Apple bearer token caching (`~/.cache/getscript/apple_token`, 30-day TTL)
 
+[0.14.0]: https://github.com/outerbanks73/cli-tools/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/outerbanks73/cli-tools/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/outerbanks73/cli-tools/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/outerbanks73/cli-tools/compare/v0.10.0...v0.11.0

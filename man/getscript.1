@@ -1,6 +1,6 @@
-.TH GETSCRIPT 1 "2026-03-24" "getscript 0.13.0" "User Commands"
+.TH GETSCRIPT 1 "2026-03-25" "getscript 0.14.0" "User Commands"
 .SH NAME
-getscript \- fetch transcripts from Apple Podcasts and YouTube
+getscript \- fetch transcripts from Apple Podcasts
 .SH SYNOPSIS
 .B getscript
 .RI [ URL | ID | \- ]
@@ -13,21 +13,15 @@ getscript \- fetch transcripts from Apple Podcasts and YouTube
 .SH DESCRIPTION
 .B getscript
 is a fast, Unix-friendly CLI for fetching transcripts from Apple Podcasts
-episodes and YouTube videos. Output goes to stdout and is designed to be
-piped into
+episodes. Output goes to stdout and is designed to be piped into
 .BR grep (1),
 .BR awk (1),
 .BR jq (1),
 or redirected to files.
 .PP
-Apple Podcasts transcripts are fetched via a compiled Obj-C helper that uses
-Apple's private AMSMescal framework (FairPlay) to obtain a bearer token, then
-queries the AMP API for TTML transcripts. This requires macOS 15.5+ with
-Xcode CLI tools.
-.PP
-YouTube transcripts are fetched via
-.B youtube-transcript-api
-with optional proxy and cookie support.
+Transcripts are fetched via a compiled Obj-C helper that uses Apple's private
+AMSMescal framework (FairPlay) to obtain a bearer token, then queries the AMP
+API for TTML transcripts. This requires macOS 15.5+ with Xcode CLI tools.
 .PP
 By default, fetched transcripts are submitted to the shared transcript
 library at
@@ -43,40 +37,28 @@ No account or login is required.
 .SH ARGUMENTS
 .TP
 .I URL
-An Apple Podcasts or YouTube URL. Supported formats:
+An Apple Podcasts URL:
 .br
 \(bu https://podcasts.apple.com/...?i=EPISODE_ID
-.br
-\(bu https://youtube.com/watch?v=VIDEO_ID
-.br
-\(bu https://youtu.be/VIDEO_ID
-.br
-\(bu https://youtube.com/shorts/VIDEO_ID
 .TP
 .I ID
-A bare Apple Podcasts numeric episode ID or YouTube video ID (11 alphanumeric
-characters).
+A bare Apple Podcasts numeric episode ID.
 .TP
 .B \-
 Read a URL or ID from standard input (one per line). Useful for piping:
 .br
-echo "dQw4w9WgXcQ" | getscript \-
+echo "1000753754819" | getscript \-
 .SH OPTIONS
 .TP
 .BI \-o " FILE" ", \-\-output " FILE
 Write output to FILE instead of stdout.
 .TP
 .BI \-\-search " QUERY"
-Search for content by topic or creator. Requires
+Search Apple Podcasts by topic or creator. Requires
 .B fzf
 for interactive selection (use
 .B \-\-list
-for non-interactive output). YouTube search requires
-.BR GETSCRIPT_YOUTUBE_API_KEY .
-.TP
-.B \-\-apple
-Search Apple Podcasts instead of YouTube (use with
-.BR \-\-search ).
+for non-interactive output).
 .TP
 .BI \-\-limit " N"
 Number of search results to return (default: 10).
@@ -93,25 +75,19 @@ and
 .BR \-\-markdown .
 .TP
 .B \-\-ttml
-Output raw TTML XML (Apple Podcasts only). Mutually exclusive with
+Output raw TTML XML. Mutually exclusive with
 .B \-\-json
 and
 .BR \-\-markdown .
 .TP
 .B \-\-timestamps
-Include timestamps in text output. Can be combined with any output format.
+Include timestamps in output. Can be combined with any output format.
 .TP
 .B \-\-markdown
 Output as Markdown with YAML frontmatter. Mutually exclusive with
 .B \-\-json
 and
 .BR \-\-ttml .
-.TP
-.BI \-\-proxy " URL"
-Proxy URL for YouTube requests (e.g., socks5://127.0.0.1:1080).
-.TP
-.BI \-\-cookies " FILE"
-Netscape cookie file for YouTube authentication.
 .TP
 .B \-\-no\-upload
 Disable automatic submission to the shared transcript library.
@@ -138,13 +114,11 @@ Print version and exit.
 .PP
 .nf
 {
-  "youtube_api_key": "YOUR_KEY",
   "output_format": "text",
   "timestamps": false,
   "search_limit": 10,
   "no_upload": false,
-  "proxy": "socks5://127.0.0.1:1080",
-  "cookie_file": "/path/to/cookies.txt"
+  "quiet": false
 }
 .fi
 .PP
@@ -152,15 +126,6 @@ See
 .I examples/config.example.md
 in the source repository for a full annotated reference.
 .SS Environment Variables
-.TP
-.B GETSCRIPT_YOUTUBE_API_KEY
-YouTube Data API v3 key (required for \fB\-\-search\fR).
-.TP
-.B GETSCRIPT_PROXY
-Default proxy URL for YouTube requests.
-.TP
-.B GETSCRIPT_COOKIE_FILE
-Default Netscape cookie file path.
 .TP
 .B GETSCRIPT_UPLOAD
 Set to \fB0\fR, \fBfalse\fR, or \fBno\fR to disable shared library
@@ -227,41 +192,35 @@ getscript "https://podcasts.apple.com/us/podcast/the-daily/id1200361736?i=100075
 # Fetch from a bare Apple episode ID
 getscript 1000753754819
 
-# Raw TTML XML (Apple only)
+# Raw TTML XML
 getscript 1000753754819 \-\-ttml
 
 # Search Apple Podcasts interactively
-getscript \-\-search "artificial intelligence" \-\-apple
-
-# Fetch a YouTube transcript
-getscript "https://youtube.com/watch?v=dQw4w9WgXcQ"
+getscript \-\-search "artificial intelligence"
 
 # JSON output piped to jq
-getscript VIDEO_ID \-\-json | jq '.segments[].text'
+getscript EPISODE_ID \-\-json | jq '.segments[].text'
 
 # Markdown with timestamps
-getscript VIDEO_ID \-\-markdown \-\-timestamps > notes.md
-
-# Search YouTube interactively
-getscript \-\-search "machine learning"
+getscript EPISODE_ID \-\-markdown \-\-timestamps > notes.md
 
 # Fetch without contributing to shared library
 getscript EPISODE_ID \-\-no\-upload
 
-# Generate shell completions
-getscript \-\-completions zsh >> ~/.zshrc
-
-# Read URL/ID from stdin
-echo "dQw4w9WgXcQ" | getscript \-
+# Read episode ID from stdin
+echo "1000753754819" | getscript \-
 
 # Batch process a list of IDs
-cat urls.txt | xargs \-n1 getscript \-\-no\-upload \-\-quiet
+cat ids.txt | xargs \-n1 getscript \-\-no\-upload \-\-quiet
 
 # Disable upload via environment variable
-GETSCRIPT_UPLOAD=0 getscript VIDEO_ID
+GETSCRIPT_UPLOAD=0 getscript EPISODE_ID
 
 # Silent file output for scripting
-getscript VIDEO_ID \-\-quiet \-\-no\-upload \-o out.txt
+getscript EPISODE_ID \-\-quiet \-\-no\-upload \-o out.txt
+
+# Generate shell completions
+getscript \-\-completions zsh >> ~/.zshrc
 .fi
 .SH FILES
 .TP
@@ -284,8 +243,7 @@ Install via Homebrew:
 .B brew install outerbanks73/tap/getscript
 .SH SEE ALSO
 .BR jq (1),
-.BR fzf (1),
-.BR youtube-dl (1)
+.BR fzf (1)
 .PP
 .UR https://voxlytranscribes.com/docs/getscript
 Technical documentation

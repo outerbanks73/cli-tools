@@ -42,7 +42,6 @@ class TestCLI:
         assert "complete" in captured.out
         assert "getscript" in captured.out
         assert "--search" in captured.out
-        assert "--proxy" in captured.out
 
     def test_completions_zsh(self, capsys):
         result = main(["--completions", "zsh"])
@@ -58,20 +57,19 @@ class TestCLI:
 
     def test_no_upload_flag_accepted(self):
         """--no-upload flag is accepted by parser without error."""
-        from getscript.cli import build_parser
         parser = build_parser()
-        args = parser.parse_args(["VIDEO_ID", "--no-upload"])
+        args = parser.parse_args(["1000753754819", "--no-upload"])
         assert args.no_upload is True
 
     def test_no_upload_flag_default(self):
         """--no-upload defaults to None when not specified."""
         parser = build_parser()
-        args = parser.parse_args(["VIDEO_ID"])
+        args = parser.parse_args(["1000753754819"])
         assert args.no_upload is None
 
     def test_stdin_dash(self, monkeypatch, capsys):
         """getscript - reads URL/ID from stdin and attempts fetch."""
-        monkeypatch.setattr("sys.stdin", io.StringIO("dQw4w9WgXcQ\n"))
+        monkeypatch.setattr("sys.stdin", io.StringIO("1000753754819\n"))
         # Will fail at network level (exit 1), but must not fail at arg parsing (exit 2)
         result = main(["-"])
         assert result != 2
@@ -117,6 +115,18 @@ class TestCLI:
         else:
             pytest.fail("--quiet flag not found in parser")
 
+    def test_proxy_flag_rejected(self):
+        """--proxy should not be recognized (YouTube removed)."""
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--proxy", "socks5://localhost:1080", "12345"])
+        assert exc_info.value.code == 2
+
+    def test_apple_flag_rejected(self):
+        """--apple should not be recognized (always Apple now)."""
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--apple", "--search", "test"])
+        assert exc_info.value.code == 2
+
 
 class TestPipeCompatibility:
     """Verify output formats are compatible with common Unix tools.
@@ -134,10 +144,10 @@ class TestPipeCompatibility:
         """JSON output should be valid for jq."""
         from getscript.output import format_json
 
-        json_str = format_json(self.FIXTURE_SEGMENTS, "youtube", "abc123")
+        json_str = format_json(self.FIXTURE_SEGMENTS, "apple", "1000753754819")
         # Verify it's valid JSON
         parsed = json.loads(json_str)
-        assert parsed["source"] == "youtube"
+        assert parsed["source"] == "apple"
         assert len(parsed["segments"]) == 3
 
     def test_text_output_grep_friendly(self):
@@ -153,6 +163,6 @@ class TestPipeCompatibility:
         """Markdown output should have frontmatter and content."""
         from getscript.output import format_markdown
 
-        result = format_markdown(self.FIXTURE_SEGMENTS, "youtube", "abc123")
+        result = format_markdown(self.FIXTURE_SEGMENTS, "apple", "1000753754819")
         assert result.startswith("---\n")
         assert "# Transcript" in result

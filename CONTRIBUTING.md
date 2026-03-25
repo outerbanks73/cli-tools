@@ -20,20 +20,19 @@ pytest -v
 | File | Purpose |
 |------|---------|
 | `getscript/cli.py` | Entry point and argument parsing |
-| `getscript/detect.py` | URL/ID source detection (Apple vs YouTube) |
+| `getscript/detect.py` | URL/ID source detection (Apple Podcasts) |
 | `getscript/apple.py` | Apple Podcasts fetching (macOS, Obj-C helper, AMSMescal/FairPlay) |
-| `getscript/youtube.py` | YouTube transcript fetching (proxy, cookies) |
 | `getscript/output.py` | Output formatters: text, JSON, Markdown, TTML |
 | `getscript/upload.py` | Shared transcript library submission |
 | `getscript/config.py` | XDG config/cache, env var handling |
-| `getscript/search.py` | YouTube API v3, iTunes Search API backends |
+| `getscript/search.py` | iTunes Search API backend |
 | `getscript/picker.py` | Interactive fzf selection |
 | `getscript/progress.py` | TTY-aware progress spinner |
 | `getscript/completions.py` | Shell completion generation (bash/zsh/fish) |
 
 ## Testing
 
-100 tests across 9 modules. Run with:
+87 tests across 9 modules. Run with:
 
 ```bash
 pytest -v

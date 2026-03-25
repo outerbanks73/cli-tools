@@ -18,7 +18,6 @@ SUPABASE_ANON_KEY = (
 )
 
 SOURCE_TYPE_MAP = {
-    "youtube": "youtube_transcript",
     "apple": "podcast",
 }
 
@@ -42,25 +41,8 @@ def get_device_id() -> str:
     return device_id
 
 
-def fetch_title(source: str, source_id: str) -> str | None:
-    """Fetch video/episode title via oembed. Returns None on failure."""
-    if source == "youtube":
-        url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={source_id}&format=json"
-    else:
-        return None
-    try:
-        req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data.get("title")
-    except Exception:
-        return None
-
-
 def _build_source_url(source: str, source_id: str) -> str:
-    if source == "youtube":
-        return f"https://www.youtube.com/watch?v={source_id}"
-    elif source == "apple":
+    if source == "apple":
         return f"https://podcasts.apple.com/podcast/ep?i={source_id}"
     return source_id
 

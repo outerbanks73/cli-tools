@@ -1,14 +1,14 @@
 # CLAUDE.md - getscript CLI Guidelines
 
 ## Project Vision
-A lightweight CLI for fetching transcripts from YouTube and Apple Podcasts.
-Target Users: Linux/macOS developers who value speed and pipes (`|`).
+A lightweight CLI for fetching transcripts from Apple Podcasts.
+Target Users: macOS developers who value speed and pipes (`|`).
 
 ## Build & Test Commands
 - **Install (editable):** `pip install -e .`
 - **Run locally:** `getscript [URL|ID] [options]`
 - **Test suite:** `pytest` or `pytest -v`
-- **Requires:** Python 3.10+
+- **Requires:** Python 3.10+, macOS 15.5+ with Xcode CLI tools for transcript fetching
 
 ## CLI Design Principles (CRITICAL)
 1. **Silence is Golden:** No "Hello!" or "Welcome!" banners unless `--verbose` is used.
@@ -28,12 +28,11 @@ Target Users: Linux/macOS developers who value speed and pipes (`|`).
 
 ## File Structure
 - `getscript/cli.py`: Entry point and argument parsing.
-- `getscript/detect.py`: URL/ID source detection.
-- `getscript/youtube.py`: YouTube transcript fetching.
+- `getscript/detect.py`: Apple Podcasts URL/ID detection.
 - `getscript/apple.py`: Apple Podcasts fetching (macOS only, Obj-C).
 - `getscript/output.py`: Output formatters (text, JSON, Markdown, TTML).
 - `getscript/config.py`: XDG config/cache handling.
-- `getscript/search.py`: Search backends (YouTube API v3, iTunes API).
+- `getscript/search.py`: iTunes Search API backend.
 - `getscript/picker.py`: Interactive fzf selection.
 - `getscript/progress.py`: TTY-aware progress spinner.
 - `getscript/completions.py`: Shell completion generation.

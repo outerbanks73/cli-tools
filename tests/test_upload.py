@@ -10,7 +10,6 @@ import pytest
 
 from getscript.upload import (
     upload_transcript,
-    fetch_title,
     get_device_id,
     _build_source_url,
     SUPABASE_URL,
@@ -50,38 +49,7 @@ class TestDeviceId:
         assert len(device_id) == 36
 
 
-class TestFetchTitle:
-    def _mock_response(self, data: dict):
-        resp = MagicMock()
-        resp.read.return_value = json.dumps(data).encode("utf-8")
-        resp.__enter__ = lambda s: s
-        resp.__exit__ = MagicMock(return_value=False)
-        return resp
-
-    @patch("getscript.upload.urllib.request.urlopen")
-    def test_youtube_title(self, mock_urlopen):
-        mock_urlopen.return_value = self._mock_response({"title": "My Video Title"})
-        assert fetch_title("youtube", "abc123") == "My Video Title"
-        req = mock_urlopen.call_args[0][0]
-        assert "oembed" in req.full_url
-        assert "abc123" in req.full_url
-
-    @patch("getscript.upload.urllib.request.urlopen")
-    def test_network_error_returns_none(self, mock_urlopen):
-        mock_urlopen.side_effect = urllib.error.URLError("fail")
-        assert fetch_title("youtube", "abc123") is None
-
-    def test_apple_returns_none(self):
-        assert fetch_title("apple", "999") is None
-
-    def test_unknown_source_returns_none(self):
-        assert fetch_title("other", "xyz") is None
-
-
 class TestBuildSourceUrl:
-    def test_youtube(self):
-        assert _build_source_url("youtube", "abc123") == "https://www.youtube.com/watch?v=abc123"
-
     def test_apple(self):
         assert _build_source_url("apple", "999") == "https://podcasts.apple.com/podcast/ep?i=999"
 
@@ -100,22 +68,19 @@ class TestUploadTranscript:
 
     @patch("getscript.upload.get_device_id", return_value="fake-device-uuid")
     @patch("getscript.upload.urllib.request.urlopen")
-    def test_successful_youtube_upload(self, mock_urlopen, _mock_device):
+    def test_successful_apple_upload(self, mock_urlopen, _mock_device):
         mock_urlopen.return_value = self._mock_response(
-            {"status": "queued", "submission_id": "uuid-1"}
+            {"status": "queued", "submission_id": "uuid-2"}
         )
-        result = upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, "My Video", {})
+        result = upload_transcript("apple", "999", FIXTURE_SEGMENTS, "My Podcast", {})
 
-        assert result == {"status": "queued", "submission_id": "uuid-1"}
-
-        # Verify the request
-        call_args = mock_urlopen.call_args
-        req = call_args[0][0]
+        assert result == {"status": "queued", "submission_id": "uuid-2"}
+        req = mock_urlopen.call_args[0][0]
         payload = json.loads(req.data.decode("utf-8"))
-        assert payload["source_type"] == "youtube_transcript"
-        assert payload["source_url"] == "https://www.youtube.com/watch?v=vid123"
-        assert payload["source_id"] == "vid123"
-        assert payload["title"] == "My Video"
+        assert payload["source_type"] == "podcast"
+        assert payload["source_url"] == "https://podcasts.apple.com/podcast/ep?i=999"
+        assert payload["source_id"] == "999"
+        assert payload["title"] == "My Podcast"
         assert payload["word_count"] == 7
         assert payload["device_id"] == "fake-device-uuid"
         assert "cli_version" in payload
@@ -124,32 +89,18 @@ class TestUploadTranscript:
 
     @patch("getscript.upload.get_device_id", return_value="fake-device-uuid")
     @patch("getscript.upload.urllib.request.urlopen")
-    def test_successful_apple_upload(self, mock_urlopen, _mock_device):
-        mock_urlopen.return_value = self._mock_response(
-            {"status": "queued", "submission_id": "uuid-2"}
-        )
-        result = upload_transcript("apple", "999", FIXTURE_SEGMENTS, "My Podcast", {})
-
-        assert result is not None
-        req = mock_urlopen.call_args[0][0]
-        payload = json.loads(req.data.decode("utf-8"))
-        assert payload["source_type"] == "podcast"
-        assert payload["source_url"] == "https://podcasts.apple.com/podcast/ep?i=999"
-
-    @patch("getscript.upload.get_device_id", return_value="fake-device-uuid")
-    @patch("getscript.upload.urllib.request.urlopen")
     def test_already_indexed(self, mock_urlopen, _mock_device):
         mock_urlopen.return_value = self._mock_response(
             {"status": "already_indexed", "transcript_id": "uuid-1"}
         )
-        result = upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, {})
+        result = upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, {})
         assert result["status"] == "already_indexed"
 
     @patch("getscript.upload.get_device_id", return_value="fake-device-uuid")
     @patch("getscript.upload.urllib.request.urlopen")
     def test_network_error_returns_none(self, mock_urlopen, _mock_device, capsys):
         mock_urlopen.side_effect = urllib.error.URLError("Connection refused")
-        result = upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, {})
+        result = upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, {})
         assert result is None
         assert "upload failed" in capsys.readouterr().err
 
@@ -160,7 +111,7 @@ class TestUploadTranscript:
             "http://example.com", 500, "Server Error", {}, BytesIO(b"error body")
         )
         mock_urlopen.side_effect = error
-        result = upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, {})
+        result = upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, {})
         assert result is None
         assert "HTTP 500" in capsys.readouterr().err
 
@@ -168,7 +119,7 @@ class TestUploadTranscript:
     @patch("getscript.upload.urllib.request.urlopen")
     def test_timeout_returns_none(self, mock_urlopen, _mock_device, capsys):
         mock_urlopen.side_effect = TimeoutError("timed out")
-        result = upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, {})
+        result = upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, {})
         assert result is None
         assert "upload failed" in capsys.readouterr().err
 
@@ -177,7 +128,7 @@ class TestUploadTranscript:
     def test_config_url_override(self, mock_urlopen, _mock_device):
         mock_urlopen.return_value = self._mock_response({"status": "queued"})
         config = {"supabase_url": "https://custom.supabase.co"}
-        upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, config)
+        upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, config)
 
         req = mock_urlopen.call_args[0][0]
         assert req.full_url == "https://custom.supabase.co/functions/v1/ingest-transcript"
@@ -187,7 +138,7 @@ class TestUploadTranscript:
     def test_config_anon_key_override(self, mock_urlopen, _mock_device):
         mock_urlopen.return_value = self._mock_response({"status": "queued"})
         config = {"supabase_anon_key": "custom-key"}
-        upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, config)
+        upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, config)
 
         req = mock_urlopen.call_args[0][0]
         assert req.get_header("Authorization") == "Bearer custom-key"
@@ -196,7 +147,7 @@ class TestUploadTranscript:
     @patch("getscript.upload.urllib.request.urlopen")
     def test_full_text_construction(self, mock_urlopen, _mock_device):
         mock_urlopen.return_value = self._mock_response({"status": "queued"})
-        upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, {})
+        upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, {})
 
         req = mock_urlopen.call_args[0][0]
         payload = json.loads(req.data.decode("utf-8"))
@@ -206,7 +157,7 @@ class TestUploadTranscript:
     @patch("getscript.upload.urllib.request.urlopen")
     def test_word_count(self, mock_urlopen, _mock_device):
         mock_urlopen.return_value = self._mock_response({"status": "queued"})
-        upload_transcript("youtube", "vid123", FIXTURE_SEGMENTS, None, {})
+        upload_transcript("apple", "999", FIXTURE_SEGMENTS, None, {})
 
         req = mock_urlopen.call_args[0][0]
         payload = json.loads(req.data.decode("utf-8"))
